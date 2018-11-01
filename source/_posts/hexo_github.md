@@ -1,5 +1,11 @@
 ---
 title: Hexo+Github
+comments: true #是否可评论
+toc: true #是否显示文章目录
+categories: "Android" #分类
+tags:   #标签
+	- hexo
+	- blog
 ---
 
 ## 环境搭建
@@ -24,7 +30,7 @@ $ hexo generate
 $ hexo deploy
 ```
 
-然后通过http://localhost:4000查看本地博客。
+然后通过 http://localhost:4000 查看本地博客。
 
 ## 关联GitHub
 - 注册并登陆GitHub账号后，新建仓库，名称必须为user.github.io，如journeyOS.github.io
