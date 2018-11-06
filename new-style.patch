@@ -1,143 +1,79 @@
-From d3646354a46f8eb5882c969bb7a95b24f0bcd5de Mon Sep 17 00:00:00 2001
+From fb7c143c6c42ad5b2e24a7c991e473fb6b0a82b1 Mon Sep 17 00:00:00 2001
 From: Solo <anqi.huang@outlook.com>
-Date: Thu, 1 Nov 2018 16:54:56 +0800
-Subject: [PATCH] Solo
+Date: Tue, 6 Nov 2018 16:42:12 +0800
+Subject: [PATCH] new style
 
 Signed-off-by: Solo <anqi.huang@outlook.com>
 ---
- _config.yml                         |  34 +++++++++++++++++-----------------
- layout/_partial/footer.ejs          |   2 +-
- layout/_partial/hide-labels.ejs     |   2 +-
- layout/_partial/post-nav-button.ejs |   1 -
- layout/_partial/post/nav.ejs        |   3 ---
- source/img/Solo.jpeg                | Bin 0 -> 11433 bytes
- 6 files changed, 19 insertions(+), 23 deletions(-)
- create mode 100644 source/img/Solo.jpeg
+ _config.yml                                  |  14 +++++++-------
+ source/css/_common/components/post/post.styl |  12 ++++++++++++
+ source/images/Solo.jpeg                      | Bin 0 -> 11433 bytes
+ 3 files changed, 19 insertions(+), 7 deletions(-)
+ create mode 100644 source/images/Solo.jpeg
 
 diff --git a/_config.yml b/_config.yml
-index 9f5b0e5..192fdec 100644
+index 479f1eb..7ddb7ef 100755
 --- a/_config.yml
 +++ b/_config.yml
-@@ -4,19 +4,19 @@
- ## About Page: `hexo new page about`
- ## Tags Cloud Page: `hexo new page tags`
- menu:
--  # 主页: /archives/
--  所有文章: /archives/
--  玩转开发工具: /categories/开发工具/
--  玩转数码: /categories/digital
--  算法学习: /categories/algorithm
-+  主页: /archives/
-+  # 所有文章: /archives/
-+  Android: /categories/Android/
-+  # 玩转数码: /categories/digital
-+  # 算法学习: /categories/algorithm
-   关于我: /about/
- # 静心阅读: /tags
+@@ -27,10 +27,10 @@ override: false
+ # For example, you put your favicons into `hexo-site/source/images` directory.
+ # Then need to rename & redefine they on any other names, otherwise icons from Next will rewrite your custom icons in Hexo.
+ favicon:
+-  small: /images/favicon-16x16-next.png
+-  medium: /images/favicon-32x32-next.png
+-  apple_touch_icon: /images/apple-touch-icon-next.png
+-  safari_pinned_tab: /images/logo.svg
++  small: /images/Solo.jpeg
++  medium: /images/Solo.jpeg
++  apple_touch_icon: /images/Solo.jpeg
++  safari_pinned_tab: /images/Solo.jpeg
+   #android_manifest: /images/manifest.json
+   #ms_browserconfig: /images/browserconfig.xml
  
- # Link to your avatar | 填写头像地址
--avatar: /img/avatar.png
-+avatar: /img/Solo.jpeg
+@@ -111,8 +111,8 @@ menu_icons:
+ # ---------------------------------------------------------------
  
- # Small icon of Your site | 站点小图标地址
--favicon: /img/favicon.png
-+favicon: /img/Solo.jpeg
+ # Schemes
+-scheme: Muse
+-#scheme: Mist
++#scheme: Muse
++scheme: Mist
+ #scheme: Pisces
+ #scheme: Gemini
  
- # 域名是否启用https，如果启用，js文件必须https加载
- isHttps: true
-@@ -27,8 +27,8 @@ isHttps: true
- ## RSS requires a plugin to take effect | 使用 RSS 需先安装对应插件
- ## https://github.com/hexojs/hexo-generator-feed
- subnav:
--  github: xxxxx
--  weibo: xxxxxxxx
-+  github: https://github.com/journeyOS/
-+  # weibo: xxxxxxxx
-   rss: /atom.xml
+@@ -695,7 +695,7 @@ pace: false
+ pace_theme: pace-theme-minimal
  
-   # Google: "#"
-@@ -69,7 +69,7 @@ background:
-   background_image: 1
+ # Canvas-nest
+-canvas_nest: false
++canvas_nest: true
  
- highlight_style:
--  on: true
-+  on: false
-   inline_code: 3  # Value: 0 - 9 可选
-   code_block: 2  # Value: 0 - 4
-   # Set inline_code to style highlight text
-@@ -108,14 +108,14 @@ animate: true
- tagcloud: true
+ # three_waves
+ three_waves: false
+diff --git a/source/css/_common/components/post/post.styl b/source/css/_common/components/post/post.styl
+index f8a05f7..f01c336 100644
+--- a/source/css/_common/components/post/post.styl
++++ b/source/css/_common/components/post/post.styl
+@@ -44,6 +44,18 @@
+   if hexo-config('motion.transition.coll_header') { .collection-title { opacity: 0; } }
+ }
  
- # Blogroll, Link exchange | 友情链接
--# friends: false
--friends:
--  csdn: http://blog.csdn.net/baidu_21483933
--  segmentfault: https://segmentfault.com/blog/maocg_web
--  简书: http://www.jianshu.com/users/eb37ef89c746/latest_articles
-+friends: false
-+# friends:
-+  # csdn: http://blog.csdn.net/baidu_21483933
-+  # segmentfault: https://segmentfault.com/blog/maocg_web
-+  # 简书: http://www.jianshu.com/users/eb37ef89c746/latest_articles
- #是否开启“关于我”。
--aboutme: 爱动漫,爱游戏,爱编程,爱运动,爱的太多了!
--#aboutme: false
-+# aboutme: 
-+aboutme: false
- 
- # 是否在新窗口打开链接
- open_in_new: false
-diff --git a/layout/_partial/footer.ejs b/layout/_partial/footer.ejs
-index fc7748e..ce2e9b2 100644
---- a/layout/_partial/footer.ejs
-+++ b/layout/_partial/footer.ejs
-@@ -5,7 +5,7 @@
-                 &copy; <%= date(new Date(), 'YYYY') %> <%= config.author || config.title %>
-             </div>
-             <div class="footer-right">
--                <a href="http://hexo.io/" target="_blank">Hexo &nbsp;&nbsp;</a><a href="https://github.com/maochunguang" target="_blank">Blog</a> by tommy
-+                <a href="http://hexo.io/" target="_blank">Hexo &nbsp;&nbsp;</a><a href="https://github.com/journeyOS" target="_blank">Blog</a> by Solo
-             </div>
-         </div>
-         <% if (theme.visit_counter.on) { %>
-diff --git a/layout/_partial/hide-labels.ejs b/layout/_partial/hide-labels.ejs
-index eb7c162..195f594 100644
---- a/layout/_partial/hide-labels.ejs
-+++ b/layout/_partial/hide-labels.ejs
-@@ -1,5 +1,5 @@
- <% if (is_archive() || is_tag() || is_category()) { %>
--    <button class="hide-labels">TAG 开关</button>
-+    <button class="hide-labels"></button>
-     <%- partial('_partial/jquery') %>
-     <script>
-         $(document).ready(function() {
-diff --git a/layout/_partial/post-nav-button.ejs b/layout/_partial/post-nav-button.ejs
-index d55b70c..c1f4a39 100644
---- a/layout/_partial/post-nav-button.ejs
-+++ b/layout/_partial/post-nav-button.ejs
-@@ -13,7 +13,6 @@
-                 <i class="fa fa-angle-right"></i>
-             </a>
-         <% } else { %>
--            <a  href="/" title="回到主页"><i class="fa fa-home"></i></a>
-         <% } %>
-     </div>
-     <%- list_posts({amount: 999}) %>
-diff --git a/layout/_partial/post/nav.ejs b/layout/_partial/post/nav.ejs
-index 8231c51..440bc6c 100644
---- a/layout/_partial/post/nav.ejs
-+++ b/layout/_partial/post/nav.ejs
-@@ -8,9 +8,6 @@
-             <span>原始链接:</span><a class="post-url" href="<%- url_for(post.path) %>" title="<%= post.title %>"><%= post.permalink %></a>
-             <span class="copy-path" data-clipboard-text="原文: <%= post.permalink %>　　作者: <%=theme.author%>" title=""></span>
-         </p>
--        <p>
--            <span>许可协议:</span><i class="fa fa-creative-commons"></i> <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/3.0/cn/" title="中国大陆 (CC BY-NC-SA 3.0 CN)" target = "_blank">"署名-非商用-相同方式共享 3.0"</a> 转载请保留原文链接及作者。
--        </p>
-     </div>
- <% } %>
- 
-diff --git a/source/img/Solo.jpeg b/source/img/Solo.jpeg
++// 文章内链接文本样式
++.post-body p a{
++  color: #0593d3; //原始链接颜色
++  border-bottom: none;
++  border-bottom: 1px solid #0593d3; //底部分割线颜色
++  &:hover {
++    color: #fc6423; //鼠标经过颜色
++    border-bottom: none;
++    border-bottom: 1px solid #fc6423; //底部分割线颜色
++  }
++}
++
+ @import "post-expand";
+ @import "post-collapse";
+ @import "post-type";
+diff --git a/source/images/Solo.jpeg b/source/images/Solo.jpeg
 new file mode 100644
 index 0000000000000000000000000000000000000000..2dde770c07f8c6cd224d0d478e8802e334616cd4
 GIT binary patch
