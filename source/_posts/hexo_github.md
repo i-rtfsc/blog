@@ -5,7 +5,7 @@ toc: true
 categories: 
   - Hexo
 type: [Hexo, 主题]
-description: "2018搭建博客记下的笔记"
+description: "2018年搭建博客记下的笔记"
 tags:
   - hexo
   - blog
