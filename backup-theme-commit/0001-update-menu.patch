@@ -1,0 +1,31 @@
+From 11f428a5ad54bf6f61acd35ac46177b6712368fd Mon Sep 17 00:00:00 2001
+From: Solo <anqi.huang@outlook.com>
+Date: Thu, 7 Oct 2021 18:27:21 +0800
+Subject: [PATCH] update menu
+
+Signed-off-by: Solo <anqi.huang@outlook.com>
+---
+ _config.yml | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/_config.yml b/_config.yml
+index b45b3d5..7cb5fcf 100644
+--- a/_config.yml
++++ b/_config.yml
+@@ -115,11 +115,11 @@ menu:
+   about: /about/ || user
+   tags: /tags/ || tags
+   categories: /categories/ || th
+-  archives: /archives/ || archive
++  # archives: /archives/ || archive
+   # switch_lang: /en || language
+   #schedule: /schedule/ || calendar
+   #sitemap: /sitemap.xml || sitemap
+-  commonweal: /404/ || heartbeat
++  # commonweal: /404/ || heartbeat
+ 
+ 
+ menu_settings:
+-- 
+2.30.1 (Apple Git-130)
+

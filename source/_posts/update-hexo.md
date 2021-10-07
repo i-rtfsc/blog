@@ -2,9 +2,11 @@
 title: 搭建（更新）hexo、next主题美化
 abbrlink: 7f4dd193
 date: 2021-10-06 22:06:58
-categories: 
+categories:
   - Hexo
-type: [Hexo, 主题]
+tags:
+  - Hexo
+  - 主题
 description: "本文讲解如何使用、更新Hexo，并主题美化"
 comments: true
 ---

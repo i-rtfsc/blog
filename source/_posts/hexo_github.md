@@ -1,14 +1,12 @@
 ---
 title: Hexo结合Github搭建博客
 comments: true
-toc: true
 categories: 
   - Hexo
-type: [Hexo, 主题]
-description: "2018年搭建博客记下的笔记"
 tags:
-  - hexo
-  - blog
+  - Hexo
+  - 主题
+description: "2018年搭建博客记下的笔记"
 abbrlink: 6ada37b2
 ---
 

@@ -2,9 +2,8 @@
 title: Binder概述
 categories:
   - Android
-type:
+tags:
   - Binder
-  - IPC
 description: Binder基本概念、原理，Binder机制系列文章列表
 comments: true
 abbrlink: d6aea0f1
@@ -154,6 +153,7 @@ $ tree frameworks/base/core/java/android/os/
 ├── ServiceManagerNative.java
 
 ```
+
 
 # 文章列表
 [Binder机制01-驱动](https://www.yuque.com/docs/share/33b2e243-6fed-4205-941e-5fc33bcd8da0?#)
