@@ -1,0 +1,30 @@
+From 9e26255eaa5ae350ad078e186ef135e987a4a39b Mon Sep 17 00:00:00 2001
+From: Solo <anqi.huang@outlook.com>
+Date: Thu, 7 Oct 2021 16:54:13 +0800
+Subject: [PATCH] busuanzi
+
+- uv->pv
+
+Signed-off-by: Solo <anqi.huang@outlook.com>
+---
+ layout/_partials/footer.swig | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/layout/_partials/footer.swig b/layout/_partials/footer.swig
+index 67820fc..1efc823 100644
+--- a/layout/_partials/footer.swig
++++ b/layout/_partials/footer.swig
+@@ -62,7 +62,7 @@
+ <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+ 
+ <div class="powered-by">
+-<i class="fa fa-user-md"></i><span id="busuanzi_container_site_uv">
+-  本站总访问量<span id="busuanzi_value_site_uv"></span>次
++<i class="fa fa-user-md"></i><span id="busuanzi_container_site_pv">
++    本站总访问量<span id="busuanzi_value_site_pv"></span>次
+ </span>
+ </div>
+\ No newline at end of file
+-- 
+2.30.1 (Apple Git-130)
+
