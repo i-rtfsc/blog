@@ -665,6 +665,16 @@ body {
 ```
 ​
 
+## 文章显示图片
+在文章头部添加：
+```bash
+<meta name="referrer" content="no-referrer"/>
+```
+引用图片方式如下：
+```bash
+![avatar](https://cdn.nlark.com/yuque/0/2020/png/1759879/1601210476189-c4fc849a-1c9e-44f6-bdb9-248960ed5209.png)
+```
+
 ## 首页文章区域添加阴影
 在目录/themes/next/source/css/_common/components/components.styl文件添加如下代码。
 ```bash
@@ -676,6 +686,7 @@ body {
   -moz-box-shadow: 0 0 5px rgba(202, 203, 204, .5);
  }
 ```
+
 
 
 # 附
