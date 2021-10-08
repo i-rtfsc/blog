@@ -3,6 +3,7 @@ title: Binder概述
 categories:
   - Android
 tags:
+  - Android
   - Binder
 description: Binder基本概念、原理，Binder机制系列文章列表
 comments: true
@@ -34,6 +35,8 @@ date: 2021-10-07 17:26:26
 
 驱动层位于Linux内核中，它提供了最底层的数据传递，对象标识，线程管理，调用过程控制等功能。**驱动层是整个Binder机制的核心**。
 Framework层以驱动层为基础，提供了应用开发的基础设施。Framework层既包含了C++部分的实现，也包含了Java部分的实现。为了能将C++的实现复用到Java端，中间通过JNI进行衔接。
+开发者可以在Framework之上利用Binder提供的机制来进行具体的业务逻辑开发。其实不仅仅是第三方开发者，Android系统中本身也包含很多系统服务都是基于Binder框架开发的。其中Binder框架是典型的C/S架构。所以在后面中， 我们把服务的请求方称为Client，服务的实现方称之Server。Clinet对于Server的请求会经由Binder驱动框架由上至下传递到内核的Binder驱动中，请求中包含了Client将要调用的命令和参数。请求到了Binder驱动以后，在确定了服务的提供方之后，再讲从下至上将请求传递给具体的服务。如下图所示：
+![avatar](https://cdn.nlark.com/yuque/0/2021/png/1759879/1633656658251-2fb84f98-67fb-4dc5-a1a4-2aa941a4c6c9.png)
 ​
 
 # 通信原理

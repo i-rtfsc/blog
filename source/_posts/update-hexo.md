@@ -689,6 +689,35 @@ body {
  }
 ```
 
+## 打开“关于”、“分类”、“标签”
+
+```bash
+hexo new page "about"
+生成source/about/index.md
+---
+title: about
+date: 2021-10-07 18:14:14
+---
+添加type: "about"
+
+
+hexo new page "tags"
+生成source/tags/index.md
+---
+title: tags
+date: 2021-10-07 18:14:14
+---
+添加type: "tags"
+
+
+hexo new page "categories"
+生成source/tags/index.md
+---
+title: categories
+date: 2021-10-07 18:14:14
+---
+添加type: "categories"
+```
 
 
 # 附
