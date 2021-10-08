@@ -13,6 +13,17 @@ date: 2021-10-07 17:26:26
 <!--more-->
 <meta name="referrer" content="no-referrer"/>
 
+
+# Binder机制文章列表
+[Binder机制01-驱动](https://journeyos.github.io/archives/3e87e0ce.html)
+[Binder机制02-ServiceManager](https://journeyos.github.io/archives/f17b1d52.html)
+[Binder机制03-Framework-Native](https://journeyos.github.io/archives/937d16d8.html)
+[Binder机制03-Framework-Jave](https://journeyos.github.io/archives/73029508.html)
+[Binder机制05-AIDL](https://journeyos.github.io/archives/ed3eb50b.html)
+[Binder机制06-框架](https://journeyos.github.io/archives/4e7f84b4.html)
+[Binder机制07-实例分析](https://journeyos.github.io/archives/d30c7ecb.html)
+[Binder机制08-总结](https://journeyos.github.io/archives/720ded9.html)
+
 # 简介
 在Android的中，我们知道每个应用都是一个独立的进程，有一个独立的虚拟机，应用和应用之间的内存是不能共享数据的，但是我们用到Activity、Service、Context、provider等功能恰恰做了很多数据传输。这就涉及到了我们了解的进程间通信机制-IPC。
 在Android中常常使用的进程间通信有共享内存、管道、信号处理、socket、Binder等，大部分场景下使用的IPC都是Binder。Binder相较于传统IPC来说更适合于Android系统，具体原因的包括如下三点：
@@ -37,7 +48,7 @@ date: 2021-10-07 17:26:26
 Framework层以驱动层为基础，提供了应用开发的基础设施。Framework层既包含了C++部分的实现，也包含了Java部分的实现。为了能将C++的实现复用到Java端，中间通过JNI进行衔接。
 开发者可以在Framework之上利用Binder提供的机制来进行具体的业务逻辑开发。其实不仅仅是第三方开发者，Android系统中本身也包含很多系统服务都是基于Binder框架开发的。其中Binder框架是典型的C/S架构。所以在后面中， 我们把服务的请求方称为Client，服务的实现方称之Server。Clinet对于Server的请求会经由Binder驱动框架由上至下传递到内核的Binder驱动中，请求中包含了Client将要调用的命令和参数。请求到了Binder驱动以后，在确定了服务的提供方之后，再讲从下至上将请求传递给具体的服务。如下图所示：
 ![avatar](https://cdn.nlark.com/yuque/0/2021/png/1759879/1633656658251-2fb84f98-67fb-4dc5-a1a4-2aa941a4c6c9.png)
-​
+
 
 # 通信原理
 Binder通信采用C/S架构，从组件视角来说，包含Client、Server、ServiceManager以及binder驱动，其中ServiceManager用于管理系统中的各种服务。架构图如下所示：
@@ -156,13 +167,3 @@ $ tree frameworks/base/core/java/android/os/
 ├── ServiceManagerNative.java
 
 ```
-
-
-# 文章列表
-[Binder机制01-驱动](https://www.yuque.com/docs/share/33b2e243-6fed-4205-941e-5fc33bcd8da0?#)
-Binder机制02-ServiceManager
-03
-04
-05
-...
-后续补充
