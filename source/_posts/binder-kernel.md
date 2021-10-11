@@ -16,11 +16,14 @@ date: 2021-10-08 21:32:01
 
 # 核心
 Binder机制的实现中，最核心的就是Binder驱动。 Binder是一个miscellaneous类型的驱动，本身不对应任何硬件，所有的操作都在软件层。 Binder驱动的核心是维护一个binder_proc类型的链表。里面记录了包括Service Manager在内的所有Client信息，当Client去请求得到某个Service时，Binder驱动就去binder_proc中查找相应的Service返回给Client，同时增加当前Service的引用个数。
+​
+
+​
 
 # 结构体
 Binder驱动中包含了很多的结构体。为了便于下文讲解，这里我们先对这些结构体做一些介绍。
 驱动中的结构体可以分为两类：
-一类是与用户空间共用的，这些结构体在Binder通信协议过程中会用到。因此，这些结构体定义在`binder.h`中，包括：
+一类是与用户空间共用的，这些结构体在Binder通信协议过程中会用到。因此，这些结构体定义在[binder.h](https://android.googlesource.com/kernel/common/+/refs/tags/5.4-android11-0/include/uapi/linux/android/binder.h)中，包括：
 
 | 结构体名称 | 说明 |
 | --- | --- |
@@ -31,7 +34,7 @@ Binder驱动中包含了很多的结构体。为了便于下文讲解，这里�
 | **binder_transaction_data** | 存储一次事务的数据 |
 | binder_ptr_cookie | 包含了一个指针和一个cookie |
 
-Binder驱动中，还有一类结构体是仅仅Binder驱动内部实现过程中需要的，它们定义在`binder.c`中，包括：
+Binder驱动中，还有一类结构体是仅仅Binder驱动内部实现过程中需要的，它们定义在[binder.c](https://android.googlesource.com/kernel/common/+/refs/tags/5.4-android11-0/drivers/android/binder.c)中，包括：
 
 | 结构体名称 | 说明 |
 | --- | --- |
@@ -43,6 +46,9 @@ Binder驱动中，还有一类结构体是仅仅Binder驱动内部实现过程�
 | binder_work | 描述通信过程中的一项任务 |
 | binder_transaction | 描述一次事务的相关信息 |
 | binder_deferred_state | 描述延迟任务 |
+| binder_stats | Binder线程相关统计数据 |
+| binder_ref_death | 死亡通知的结构体 |
+
 
 
 ## **binder_write_read**
@@ -68,13 +74,14 @@ write_buffer和read_buffer都是包含Binder协议命令和binder_transaction_da
 - copy_to_user()：将用内核态binder_write_read结构体数据拷贝到用户空间。
 
 
+
 ## **binder_transaction_data**
 ```c
 struct binder_transaction_data {
     union {
         __u32    handle;                 //binder_ref（即handle）
         binder_uintptr_t ptr;            //Binder_node的内存地址
-    } target;  							 //RPC目标
+    } target;                            //RPC目标
     binder_uintptr_t    cookie;          //BBinder指针
     __u32        code;                   //RPC代码，代表Client与Server双方约定的命令码
 
@@ -89,7 +96,7 @@ struct binder_transaction_data {
             binder_uintptr_t    buffer;  //数据区起始地址
             binder_uintptr_t    offsets; //数据区IPC对象偏移量
         } ptr;
-        __u8    buf[8];
+       __u8    buf[8];
     } data;                              //RPC数据
 };
 ```
@@ -103,7 +110,6 @@ struct binder_transaction_data {
 - offsets_size： 代表传递的IPC对象的大小；根据这个可以推测出传递了多少个binder对象。
    - 对于64位IPC，一个IPC对象大小等于8。
    - 对于32位IPC，一个IPC对象大小等于4。
-
 ## binder_node
 ```c
 /**
@@ -182,7 +188,7 @@ struct binder_node {
     int internal_strong_refs;
     int local_weak_refs;
     int local_strong_refs;
-    int tmp_refs;
+    int tmp_refs
     binder_uintptr_t ptr;               //指向用户空间binder_node的指针，对应flat_binder_object.binder
     binder_uintptr_t cookie;            //数据，对应flat_binder_object.cookie
     struct {
@@ -224,6 +230,8 @@ struct binder_node {
 - cookie：指向用户空间的附加指针，来自于flat_binder_object的cookie成员
 - has_strong_ref, pending_strong_ref, has_weak_ref, pending_weak_ref：这一组标志用于控制驱动与Binder实体所在进程交互式修改引用计数。
 
+
+
 ## binder_ref
 ```c
 /**
@@ -244,20 +252,21 @@ struct binder_node {
  * structure is unsafe to access without holding @proc->outer_lock.
  */
 struct binder_ref {
-	/* Lookups needed: */
-	/*   node + proc => ref (transaction) */
-	/*   desc + proc => ref (transaction, inc/dec ref) */
-	/*   node => refs + procs (proc exit) */
-	struct binder_ref_data data;
-	struct rb_node rb_node_desc;		//以desc为索引的红黑树
-	struct rb_node rb_node_node;		//以node为索引的红黑树
-	struct hlist_node node_entry;
-	struct binder_proc *proc;			//binder进程
-	struct binder_node *node;			//binder节点
-	struct binder_ref_death *death;		//如果不为空，则client想获知binder的死亡
+    /* Lookups needed: */
+    /*   node + proc => ref (transaction) */
+    /*   desc + proc => ref (transaction, inc/dec ref) */
+    /*   node => refs + procs (proc exit) */
+    struct binder_ref_data data;
+    struct rb_node rb_node_desc;        //以desc为索引的红黑树
+    struct rb_node rb_node_node;        //以node为索引的红黑树
+    struct hlist_node node_entry;
+    struct binder_proc *proc;           //binder进程
+    struct binder_node *node;           //binder节点
+    struct binder_ref_death *death;     //如果不为空，则client想获知binder的死亡
 };
 ```
 binder_ref 描述了每个对服务对象的引用，对应与Client端。如上图所示，每个Ref通过node指向binder_node. 一个进程所有的binder_ref通过两个红黑树（RbTree)进行管理，通过binder_get_ref() 和 binder_get_ref_for_node快速查找。
+
 
 ## binder_proc
 ```c
@@ -316,32 +325,32 @@ binder_ref 描述了每个对服务对象的引用，对应与Client端。如上
  * Bookkeeping structure for binder processes
  */
 struct binder_proc {
-	struct hlist_node proc_node;				//进程节点
-	struct rb_root threads;						//binder_thread红黑树的根节点，存放指针，指向进程所有的binder_thread, 用于Server端
-	struct rb_root nodes;						//binder_node红黑树的根节点，存放指针，指向进程所有的binder 对象
-	struct rb_root refs_by_desc;				//记录binder引用, 便于快速查找,binder_ref红黑树的根节点(以handle为key)，它是Client在Binder驱动中的体现
-	struct rb_root refs_by_node;				//记录binder引用, 便于快速查找,binder_ref红黑树的根节点（以ptr为key），它是Client在Binder驱动中的体现
-	struct list_head waiting_threads;
-	int pid;									//相应进程id
-	struct task_struct *tsk;					//相应进程的task结构体
-	struct hlist_node deferred_work_node;
-	int deferred_work;
-	bool is_dead;
+    struct hlist_node proc_node;                //进程节点
+    struct rb_root threads;                     //binder_thread红黑树的根节点，存放指针，指向进程所有的binder_thread, 用于Server端
+    struct rb_root nodes;                       //binder_node红黑树的根节点，存放指针，指向进程所有的binder 对象
+    struct rb_root refs_by_desc;                //记录binder引用, 便于快速查找,binder_ref红黑树的根节点(以handle为key)，它是Client在Binder驱动中的体现
+    struct rb_root refs_by_node;                //记录binder引用, 便于快速查找,binder_ref红黑树的根节点（以ptr为key），它是Client在Binder驱动中的体现
+    struct list_head waiting_threads;
+    int pid;                                    //相应进程id
+    struct task_struct *tsk;                    //相应进程的task结构体
+    struct hlist_node deferred_work_node;
+    int deferred_work;
+    bool is_dead;
 
-	struct list_head todo;						//进程将要做的事
-	struct binder_stats stats;					//binder统计信息
-	struct list_head delivered_death;
-	int max_threads;
-	int requested_threads;						//请求的线程数
-	int requested_threads_started;				//已启动的请求线程数
-	int tmp_ref;
-	struct binder_priority default_priority;	//默认优先级
-	struct dentry *debugfs_entry;
-	struct binder_alloc alloc;
-	struct binder_context *context;
-	spinlock_t inner_lock;
-	spinlock_t outer_lock;
-	struct dentry *binderfs_entry;
+    struct list_head todo;                      //进程将要做的事
+    struct binder_stats stats;                  //binder统计信息
+    struct list_head delivered_death;
+    int max_threads;
+    int requested_threads;                      //请求的线程数
+    int requested_threads_started;              //已启动的请求线程数
+    int tmp_ref;
+    struct binder_priority default_priority;    //默认优先级
+    struct dentry *debugfs_entry;
+    struct binder_alloc alloc;
+    struct binder_context *context;
+    spinlock_t inner_lock;
+    spinlock_t outer_lock;
+    struct dentry *binderfs_entry;
 };
 ```
 一个进程既包含的Service对象，也可能包含对其他Service对象的引用. 如果作为Service对象进程，它可能会存在多个Binder_Thread。这些信息都在binder_proc结构体进行管理。
@@ -368,27 +377,28 @@ struct binder_proc {
  * Bookkeeping structure for binder transaction buffers
  */
 struct binder_buffer {
-	/* free and allocated entries by address */
-	struct list_head entry;						//buffer实体的地址
-	/* free entry by size or allocated entry */
-	/* by address */
-	struct rb_node rb_node; 					//buffer实体的地址
-	unsigned free:1;							//标记是否是空闲buffer，占位1bit
-	unsigned allow_user_free:1;					//是否允许用户释放，占位1bit
-	unsigned async_transaction:1;
-	unsigned debug_id:29;
+    /* free and allocated entries by address */
+    struct list_head entry;                     //buffer实体的地址
+    /* free entry by size or allocated entry */
+    /* by address */
+    struct rb_node rb_node;                     //buffer实体的地址
+    unsigned free:1;                            //标记是否是空闲buffer，占位1bit
+    unsigned allow_user_free:1;                 //是否允许用户释放，占位1bit
+    unsigned async_transaction:1;
+    unsigned debug_id:29;
 
-	struct binder_transaction *transaction;		//该缓存区的需要处理的事务
+    struct binder_transaction *transaction;     //该缓存区的需要处理的事务
 
-	struct binder_node *target_node;			//该缓存区所需处理的Binder实体
-	size_t data_size;							//数据大小
-	size_t offsets_size;						//数据偏移量
-	size_t extra_buffers_size;
-	void __user *user_data;						//用户数据
-	int    pid;
+    struct binder_node *target_node;            //该缓存区所需处理的Binder实体
+    size_t data_size;                           //数据大小
+    size_t offsets_size;                        //数据偏移量
+    size_t extra_buffers_size;
+    void __user *user_data;                     //用户数据
+    int    pid;
 };
 ```
 进程间通信除了命令，还有参数和返回值的交换，要将数据从一个进程的地址空间，传到另外一个进程的地址空间，通常需要两次拷贝，进程A -> 内核 -> 进程B。binder_buffer 就是内核里存放交换数据的空间（这些数据是以Parcel的形式存在）。为了提高效率，Android 的 binder 只需要一次拷贝，因为binder 进程通过mmap将内核空间地址映射到用户空间，从而可以直接访问binder_buffer的内容而无需一次额外拷贝。binder_buffer由内核在每次发起的binder调用创建，并赋给binder_transaction->buffer.binder driver 根据binder_transaction 生产 transaction_data（包含buffer的指针而非内容）, 并将其复制到用户空间。
+
 
 ## binder_thread
 ```c
@@ -430,7 +440,7 @@ struct binder_buffer {
  * Bookkeeping structure for binder threads.
  */
 struct binder_thread {
-	struct binder_proc *proc;   //线程所属的进程
+    struct binder_proc *proc;   //线程所属的进程
     struct rb_node rb_node;         //红黑树节点
     struct list_head waiting_thread_node;
     int pid;                          //线程pid
@@ -451,29 +461,35 @@ struct binder_thread {
 binder_proc里的threads 红黑树存放着指向binder_thread对象的指针。这里的binder_thread 不仅仅包括service的binder thread，也包括访问其他service的调用thread。 也就是说所有与binder相关的线程都会在binder_proc的threads红黑树里留下记录。binder_thread里最重要的两个成员变量是 transaction_stack 和 wait。
 在binder_proc里面我们也能看到一个wait 队列，是不是意味着线程既可以在proc->wait上等待，也可以在thread->wait上等待？binder driver 对此有明确的用法，所有的binder threads (server 端）都等待在proc->wait上。因为对于服务端来说，用哪个thread来响应远程调用请求都是一样的。然而所有的ref thread(client端）的返回等待都发生在调用thread的wait 队列，因为，当某个binder thread 完成服务请求后，他必须唤醒特定的等待返回的线程。但是有一个例外，在双向调用的情况下，某个Server端的thread将会挂在thread->wait上等待，而不是proc->wait. 举个例子，假设两个进程P1 和 P2，各自运行了一个Service， S1，S2， P1 在 thread T1 里调用S2提供的服务，然后在T1->wait里等待返回。S2的服务在P2的binder thread(T2)里执行，执行过程中，S2又调到S1里的某个接口，按理S1 将在P1的binder thread T3里执行， 如果P1接下来又调到了P2，那又会产生新的进程 T4， 如果这个反复调用栈很深，需要耗费大量的线程，显然这是非常不高效的设计。所以，binder driver 里做了特殊的处理。当T2 调用 S1的接口函数时，binder driver 会遍历T2的transaction_stack, 如果发现这是一个双向调用（binder_transaction->from->proc 等于P1), 便会唤醒正在等待reply的T1，T1 完成这个请求后，继续等待S2的回复。这样，只需要最多两个Thread就可以完成多层的双向调用。
 binder_thread里的transaction_stack 是用链表实现的堆栈， 调用线程和服务线程的transaction有着不同的堆栈。下图是上面这个例子的堆栈情形：
-![avatar](https://cdn.nlark.com/yuque/0/2020/png/1759879/1601276620542-79b2eecc-f9bf-4a9a-be01-5913c0d3106c.png)
+![binder_thread.png](https://cdn.nlark.com/yuque/0/2020/png/1759879/1601276620542-79b2eecc-f9bf-4a9a-be01-5913c0d3106c.png#height=454&id=Tmk3J&margin=%5Bobject%20Object%5D&name=binder_thread.png&originHeight=454&originWidth=1074&originalType=binary&ratio=1&size=49573&status=done&style=none&width=1074)
+
 
 ## 关系
-![avatar](https://cdn.nlark.com/yuque/0/2020/png/1759879/1601276823463-791dd136-7021-494b-ad96-702311539cf4.png)
+![binder_main_struct.png](https://cdn.nlark.com/yuque/0/2020/png/1759879/1601276823463-791dd136-7021-494b-ad96-702311539cf4.png#height=769&id=m3g6o&margin=%5Bobject%20Object%5D&name=binder_main_struct.png&originHeight=769&originWidth=1042&originalType=binary&ratio=1&size=313830&status=done&style=none&width=1042)
+
 
 # 协议
 Binder协议可以分为控制协议和驱动协议两类。
 
+
+
+
 ## 控制协议
 控制协议是进程通过ioctl(“/dev/binder”) 与Binder设备进行通讯的协议，该协议包含以下几种命令：
 ```c
-#define BINDER_WRITE_READ		_IOWR('b', 1, struct binder_write_read)
-#define BINDER_SET_IDLE_TIMEOUT		_IOW('b', 3, __s64)
-#define BINDER_SET_MAX_THREADS		_IOW('b', 5, __u32)
-#define BINDER_SET_IDLE_PRIORITY	_IOW('b', 6, __s32)
-#define BINDER_SET_CONTEXT_MGR		_IOW('b', 7, __s32)
-#define BINDER_THREAD_EXIT		_IOW('b', 8, __s32)
-#define BINDER_VERSION			_IOWR('b', 9, struct binder_version)
-#define BINDER_GET_NODE_DEBUG_INFO	_IOWR('b', 11, struct binder_node_debug_info)
-#define BINDER_GET_NODE_INFO_FOR_REF	_IOWR('b', 12, struct binder_node_info_for_ref)
-#define BINDER_SET_CONTEXT_MGR_EXT	_IOW('b', 13, struct flat_binder_object)
+#define BINDER_WRITE_READ       _IOWR('b', 1, struct binder_write_read)
+#define BINDER_SET_IDLE_TIMEOUT     _IOW('b', 3, __s64)
+#define BINDER_SET_MAX_THREADS      _IOW('b', 5, __u32)
+#define BINDER_SET_IDLE_PRIORITY    _IOW('b', 6, __s32)
+#define BINDER_SET_CONTEXT_MGR      _IOW('b', 7, __s32)
+#define BINDER_THREAD_EXIT      _IOW('b', 8, __s32)
+#define BINDER_VERSION          _IOWR('b', 9, struct binder_version)
+#define BINDER_GET_NODE_DEBUG_INFO  _IOWR('b', 11, struct binder_node_debug_info)
+#define BINDER_GET_NODE_INFO_FOR_REF    _IOWR('b', 12, struct binder_node_info_for_ref)
+#define BINDER_SET_CONTEXT_MGR_EXT  _IOW('b', 13, struct flat_binder_object)
 ```
 这些Binder IOCTL码的作用如下：
+
 | 命令 | 说明 | 参数类型 |
 | --- | --- | --- |
 | **BINDER_WRITE_READ** | 读写操作，最常用的命令。IPC过程就是通过这个命令进行数据传递 | binder_write_read |
@@ -485,12 +501,12 @@ Binder协议可以分为控制协议和驱动协议两类。
 | BINDER_SET_IDLE_TIMEOUT | 暂未用到 | - |
 
 
+
 ## 驱动协议
 Binder的驱动协议描述了对于Binder驱动的具体使用过程。驱动协议又可以分为两类：
 
 - 一类是binder_driver_command_protocol，描述了进程发送给Binder驱动的命令；也称BC码
 - 一类是binder_driver_return_protocol，描述了Binder驱动发送给进程的命令；也称BR码
-
 ### BC码
 BC码的作用如下：
 
@@ -514,6 +530,7 @@ BC码的作用如下：
 | BC_ATTEMPT_ACQUIRE | 暂未实现 | - |
 | BC_ACQUIRE_RESULT | 暂未实现 | - |
 
+​
 
 ### BR码
 BR码的作用如下：
@@ -540,8 +557,9 @@ BR码的作用如下：
 | BR_FINISHED | 暂未实现 | - |
 
 
+
 单独看上面的协议可能很难理解，这里我们以一次Binder请求过程来详细看一下Binder协议是如何通信的，就比较好理解了。
-![avatar](https://cdn.nlark.com/yuque/0/2020/png/1759879/1601277652131-ec9e902c-703e-48a0-8d4a-c3dee5223fff.png)
+![binder_request_sequence.png](https://cdn.nlark.com/yuque/0/2020/png/1759879/1601277652131-ec9e902c-703e-48a0-8d4a-c3dee5223fff.png#height=1110&id=sg5BT&margin=%5Bobject%20Object%5D&name=binder_request_sequence.png&originHeight=1110&originWidth=1559&originalType=binary&ratio=1&size=110963&status=done&style=none&width=1559)
 从上图我们可以知道：
 
 - Binder是C/S架构的，通信过程牵涉到：Client，Server以及Binder驱动三个角色
@@ -551,7 +569,10 @@ BR码的作用如下：
 - 整个通信过程由Binder驱动控制
 
 
+
 通过上面的Binder协议的说明表中我们看到，Binder协议的通信过程中，不仅仅是发送请求和接受数据这些命令。同时包括了对于引用计数的管理和对于死亡通知的管理（告知一方，通讯的另外一方已经死亡）等功能。这些功能的通信过程和上面这幅图是类似的：一方发送BC_XXX，然后由驱动控制通信过程，接着发送对应的BR_XXX命令给通信的另外一方。
+
+
 
 
 # Binder init
@@ -559,118 +580,116 @@ BR码的作用如下：
 ```c
 static int __init binder_init(void)
 {
-	int ret;
-	char *device_name, *device_tmp;
-	struct binder_device *device;
-	struct hlist_node *tmp;
-	char *device_names = NULL;
+    int ret;
+    char *device_name, *device_tmp;
+    struct binder_device *device;
+    struct hlist_node *tmp;
+    char *device_names = NULL;
 
-	ret = binder_alloc_shrinker_init();
-	if (ret)
-		return ret;
+    ret = binder_alloc_shrinker_init();
+    if (ret)
+        return ret;
 
-	atomic_set(&binder_transaction_log.cur, ~0U);
-	atomic_set(&binder_transaction_log_failed.cur, ~0U);
+    atomic_set(&binder_transaction_log.cur, ~0U);
+    atomic_set(&binder_transaction_log_failed.cur, ~0U);
 
-	/**
+    /**
      * 在debugfs文件系统中创建一个目录，返回值是指向dentry的指针
      * 在手机对应的目录：/sys/kernel/debug/binder 里面创建了几个文件，用来记录binder操作过程中的信息和日志 
      */
-	binder_debugfs_dir_entry_root = debugfs_create_dir("binder", NULL);
-	if (binder_debugfs_dir_entry_root)
-		binder_debugfs_dir_entry_proc = debugfs_create_dir("proc",
-						 binder_debugfs_dir_entry_root);
+    binder_debugfs_dir_entry_root = debugfs_create_dir("binder", NULL);
+    if (binder_debugfs_dir_entry_root)
+        binder_debugfs_dir_entry_proc = debugfs_create_dir("proc",
+                         binder_debugfs_dir_entry_root);
 
-	if (binder_debugfs_dir_entry_root) {
-		debugfs_create_file("state",
-				    0444,
-				    binder_debugfs_dir_entry_root,
-				    NULL,
-				    &binder_state_fops);
-		debugfs_create_file("stats",
-				    0444,
-				    binder_debugfs_dir_entry_root,
-				    NULL,
-				    &binder_stats_fops);
-		debugfs_create_file("transactions",
-				    0444,
-				    binder_debugfs_dir_entry_root,
-				    NULL,
-				    &binder_transactions_fops);
-		debugfs_create_file("transaction_log",
-				    0444,
-				    binder_debugfs_dir_entry_root,
-				    &binder_transaction_log,
-				    &binder_transaction_log_fops);
-		debugfs_create_file("failed_transaction_log",
-				    0444,
-				    binder_debugfs_dir_entry_root,
-				    &binder_transaction_log_failed,
-				    &binder_transaction_log_fops);
-	}
+    if (binder_debugfs_dir_entry_root) {
+        debugfs_create_file("state",
+                    0444,
+                    binder_debugfs_dir_entry_root,
+                    NULL,
+                    &binder_state_fops);
+        debugfs_create_file("stats",
+                    0444,
+                    binder_debugfs_dir_entry_root,
+                    NULL,
+                    &binder_stats_fops);
+        debugfs_create_file("transactions",
+                    0444,
+                    binder_debugfs_dir_entry_root,
+                    NULL,
+                    &binder_transactions_fops);
+        debugfs_create_file("transaction_log",
+                    0444,
+                    binder_debugfs_dir_entry_root,
+                    &binder_transaction_log,
+                    &binder_transaction_log_fops);
+        debugfs_create_file("failed_transaction_log",
+                    0444,
+                    binder_debugfs_dir_entry_root,
+                    &binder_transaction_log_failed,
+                    &binder_transaction_log_fops);
+    }
 
-	if (!IS_ENABLED(CONFIG_ANDROID_BINDERFS) &&
-	    strcmp(binder_devices_param, "") != 0) {
-		/*
-		* Copy the module_parameter string, because we don't want to
-		* tokenize it in-place.
-		 */
-		device_names = kstrdup(binder_devices_param, GFP_KERNEL);
-		if (!device_names) {
-			ret = -ENOMEM;
-			goto err_alloc_device_names_failed;
-		}
+    if (!IS_ENABLED(CONFIG_ANDROID_BINDERFS) &&
+        strcmp(binder_devices_param, "") != 0) {
+        /*
+        * Copy the module_parameter string, because we don't want to
+        * tokenize it in-place.
+         */
+        device_names = kstrdup(binder_devices_param, GFP_KERNEL);
+        if (!device_names) {
+            ret = -ENOMEM;
+            goto err_alloc_device_names_failed;
+        }
 
-		/**
-		 * Android8.0 中引入了hwbinder，vndbinder，所以现在有三个binder，分别需要创建三个binder device:
-		 * 循环注册binder 的三个设备：
-		 * /dev/binder
-		 * /dev/hwbinder
-		 * /dev/vndbinder
-		 */
-		device_tmp = device_names;
-		while ((device_name = strsep(&device_tmp, ","))) {
-			ret = init_binder_device(device_name);
-			if (ret)
-				goto err_init_binder_device_failed;
-		}
-	}
+        /**
+         * Android8.0 中引入了hwbinder，vndbinder，所以现在有三个binder，分别需要创建三个binder device:
+         * 循环注册binder 的三个设备：
+         * /dev/binder
+         * /dev/hwbinder
+         * /dev/vndbinder
+         */
+        device_tmp = device_names;
+        while ((device_name = strsep(&device_tmp, ","))) {
+            ret = init_binder_device(device_name);
+            if (ret)
+                goto err_init_binder_device_failed;
+        }
+    }
 
-	ret = init_binderfs();
-	if (ret)
-		goto err_init_binder_device_failed;
+    ret = init_binderfs();
+    if (ret)
+        goto err_init_binder_device_failed;
 
-	return ret;
+    return ret;
 
 err_init_binder_device_failed:
-	hlist_for_each_entry_safe(device, tmp, &binder_devices, hlist) {
-		misc_deregister(&device->miscdev);
-		hlist_del(&device->hlist);
-		kfree(device);
-	}
+    hlist_for_each_entry_safe(device, tmp, &binder_devices, hlist) {
+        misc_deregister(&device->miscdev);
+        hlist_del(&device->hlist);
+        kfree(device);
+    }
 
-	kfree(device_names);
+    kfree(device_names);
 
 err_alloc_device_names_failed:
-	debugfs_remove_recursive(binder_debugfs_dir_entry_root);
+    debugfs_remove_recursive(binder_debugfs_dir_entry_root);
 
-	return ret;
+    return ret;
 }
 ```
-
-
 其实binder_init()中最重要的是创建设备文件的函数misc_register(&device->miscdev); 也就是将device->miscdev注册为misc设备。
 ```c
 struct miscdevice  {
-	int minor;                          //次设备号 动态分配 MISC_DYNAMIC_MINOR
-	const char *name;                   //设备名如/dev/binder、/dev/hwbinder、/dev/vndbinder"
-	const struct file_operations *fops; //设备的文件操作结构，这是file_operations结构
-	struct list_head list;
-	struct device *parent;
-	struct device *this_device;
-	const struct attribute_group **groups;
-	const char *nodename;
-	umode_t mode;
+    int minor;                          //次设备号 动态分配 MISC_DYNAMIC_MINOR
+    const char *name;                   //设备名如/dev/binder、/dev/hwbinder、/dev/vndbinder"
+    const struct file_operations *fops; //设备的文件操作结构，这是file_operations结构
+    struct list_head list;
+    struct device *parent;
+    struct device *this_device;
+    const struct attribute_group **groups;
+    const char *nodename;
+    umode_t mode;
 }
 
 /**
@@ -683,52 +702,52 @@ struct miscdevice  {
  *                  belonging to a binderfs mount.
  */
 struct binder_device {
-	struct hlist_node hlist;
-	struct miscdevice miscdev;
-	struct binder_context context;
-	struct inode *binderfs_inode;
-	refcount_t ref;
+    struct hlist_node hlist;
+    struct miscdevice miscdev;
+    struct binder_context context;
+    struct inode *binderfs_inode;
+    refcount_t ref;
 };
 
 const struct file_operations binder_fops = {
-	.owner = THIS_MODULE,
-	.poll = binder_poll,
-	.unlocked_ioctl = binder_ioctl,
-	.compat_ioctl = binder_ioctl,
-	.mmap = binder_mmap,
-	.open = binder_open,
-	.flush = binder_flush,
-	.release = binder_release,
+    .owner = THIS_MODULE,
+    .poll = binder_poll,
+    .unlocked_ioctl = binder_ioctl,
+    .compat_ioctl = binder_ioctl,
+    .mmap = binder_mmap,
+    .open = binder_open,
+    .flush = binder_flush,
+    .release = binder_release,
 };
 
 
 static int __init init_binder_device(const char *name)
 {
-	int ret;
-	struct binder_device *binder_device;
+    int ret;
+    struct binder_device *binder_device;
 
-	binder_device = kzalloc(sizeof(*binder_device), GFP_KERNEL);
-	if (!binder_device)
-		return -ENOMEM;
+    binder_device = kzalloc(sizeof(*binder_device), GFP_KERNEL);
+    if (!binder_device)
+        return -ENOMEM;
 
-	binder_device->miscdev.fops = &binder_fops;
-	binder_device->miscdev.minor = MISC_DYNAMIC_MINOR;
-	binder_device->miscdev.name = name;
+    binder_device->miscdev.fops = &binder_fops;
+    binder_device->miscdev.minor = MISC_DYNAMIC_MINOR;
+    binder_device->miscdev.name = name;
 
-	refcount_set(&binder_device->ref, 1);
-	binder_device->context.binder_context_mgr_uid = INVALID_UID;
-	binder_device->context.name = name;
-	mutex_init(&binder_device->context.context_mgr_node_lock);
+    refcount_set(&binder_device->ref, 1);
+    binder_device->context.binder_context_mgr_uid = INVALID_UID;
+    binder_device->context.name = name;
+    mutex_init(&binder_device->context.context_mgr_node_lock);
 
-	ret = misc_register(&binder_device->miscdev);
-	if (ret < 0) {
-		kfree(binder_device);
-		return ret;
-	}
+    ret = misc_register(&binder_device->miscdev);
+    if (ret < 0) {
+        kfree(binder_device);
+        return ret;
+    }
 
-	hlist_add_head(&binder_device->hlist, &binder_devices);
+    hlist_add_head(&binder_device->hlist, &binder_devices);
 
-	return ret;
+    return ret;
 }
 
 
@@ -737,125 +756,129 @@ binder_device结构体包含了一个哈希链表、一个misc设备结构、一
 miscdevice结构体我们主要关注name，fops；其中name就是设备名如/dev/binder、/dev/hwbinder、/dev/vndbinder；fops设备的文件操作结构，作用是标识当前设备的操作函数。从这个成员变量的定义中我们可以看到这个设备所具备的接口，如binder_fops中可以看到有binder_ioctl、binder_open和binder_mmap等接口。当我们对这个设备进行各种操作时，就会调用其中的函数。
 
 
+
+
 # Binder open
 任何进程在使用Binder之前，都需要先通过open("/dev/binder")打开Binder设备。上文已经提到，用户空间的open系统调用对应了驱动中的binder_open函数。在这个函数，Binder驱动会为调用的进程做一些初始化工作。binder_open函数代码如下所示：
 ```c
 static int binder_open(struct inode *nodp, struct file *filp)
 {
-	struct binder_proc *proc, *itr;//binder进程
-	struct binder_device *binder_dev;//binder device
-	struct binderfs_info *info;
-	struct dentry *binder_binderfs_dir_entry_proc = NULL;
-	bool existing_pid = false;
+    struct binder_proc *proc, *itr;//binder进程
+    struct binder_device *binder_dev;//binder device
+    struct binderfs_info *info;
+    struct dentry *binder_binderfs_dir_entry_proc = NULL;
+    bool existing_pid = false;
 
-	binder_debug(BINDER_DEBUG_OPEN_CLOSE, "%s: %d:%d\n", __func__,
-		     current->group_leader->pid, current->pid);
+    binder_debug(BINDER_DEBUG_OPEN_CLOSE, "%s: %d:%d\n", __func__,
+             current->group_leader->pid, current->pid);
 
-	/**
-	 * 为binder_proc结构体在分配kernel内存空间
-	 */
-	proc = kzalloc(sizeof(*proc), GFP_KERNEL);
-	if (proc == NULL)
-		return -ENOMEM;
-	spin_lock_init(&proc->inner_lock);
-	spin_lock_init(&proc->outer_lock);
-	get_task_struct(current->group_leader);//增加线程引用计数
-	proc->tsk = current->group_leader;//将当前线程的task保存到binder进程的tsk
-	INIT_LIST_HEAD(&proc->todo);//初始化todo队列，用于存放待处理的请求（server端）
-	if (binder_supported_policy(current->policy)) {
-		proc->default_priority.sched_policy = current->policy;
-		proc->default_priority.prio = current->normal_prio;
-	} else {
-		proc->default_priority.sched_policy = SCHED_NORMAL;
-		proc->default_priority.prio = NICE_TO_PRIO(0);
-	}
+    /**
+     * 为binder_proc结构体在分配kernel内存空间
+     */
+    proc = kzalloc(sizeof(*proc), GFP_KERNEL);
+    if (proc == NULL)
+        return -ENOMEM;
+    spin_lock_init(&proc->inner_lock);
+    spin_lock_init(&proc->outer_lock);
+    get_task_struct(current->group_leader);//增加线程引用计数
+    proc->tsk = current->group_leader;//将当前线程的task保存到binder进程的tsk
+    INIT_LIST_HEAD(&proc->todo);//初始化todo队列，用于存放待处理的请求（server端）
+    if (binder_supported_policy(current->policy)) {
+        proc->default_priority.sched_policy = current->policy;
+        proc->default_priority.prio = current->normal_prio;
+    } else {
+        proc->default_priority.sched_policy = SCHED_NORMAL;
+        proc->default_priority.prio = NICE_TO_PRIO(0);
+    }
 
-	/* binderfs stashes devices in i_private */
-	if (is_binderfs_device(nodp)) {
-		binder_dev = nodp->i_private;
-		info = nodp->i_sb->s_fs_info;
-		binder_binderfs_dir_entry_proc = info->proc_log_dir;
-	} else {
-		binder_dev = container_of(filp->private_data,
-					  struct binder_device, miscdev);
-	}
-	refcount_inc(&binder_dev->ref);
-	proc->context = &binder_dev->context;//拿到binder device的context，传给binder_proc
-	binder_alloc_init(&proc->alloc);
+    /* binderfs stashes devices in i_private */
+    if (is_binderfs_device(nodp)) {
+        binder_dev = nodp->i_private;
+        info = nodp->i_sb->s_fs_info;
+        binder_binderfs_dir_entry_proc = info->proc_log_dir;
+    } else {
+        binder_dev = container_of(filp->private_data,
+                      struct binder_device, miscdev);
+    }
+    refcount_inc(&binder_dev->ref);
+    proc->context = &binder_dev->context;//拿到binder device的context，传给binder_proc
+    binder_alloc_init(&proc->alloc);
 
-	binder_stats_created(BINDER_STAT_PROC);//类型为BINDER_STAT_PROC对象的创建个数加1
-	proc->pid = current->group_leader->pid;//记录当前进程的pid
-	INIT_LIST_HEAD(&proc->delivered_death);
-	INIT_LIST_HEAD(&proc->waiting_threads);
-	filp->private_data = proc;//将binder_proc存放在filp的private_data域，以便于在之后的mmap、ioctl中获取
+    binder_stats_created(BINDER_STAT_PROC);//类型为BINDER_STAT_PROC对象的创建个数加1
+    proc->pid = current->group_leader->pid;//记录当前进程的pid
+    INIT_LIST_HEAD(&proc->delivered_death);
+    INIT_LIST_HEAD(&proc->waiting_threads);
+    filp->private_data = proc;//将binder_proc存放在filp的private_data域，以便于在之后的mmap、ioctl中获取
 
-	mutex_lock(&binder_procs_lock);
-	hlist_for_each_entry(itr, &binder_procs, proc_node) {
-		if (itr->pid == proc->pid) {
-			existing_pid = true;
-			break;
-		}
-	}
-	hlist_add_head(&proc->proc_node, &binder_procs);//将proc_node节点添加到binder_procs为表头的队列
-	mutex_unlock(&binder_procs_lock);
+    mutex_lock(&binder_procs_lock);
+    hlist_for_each_entry(itr, &binder_procs, proc_node) {
+        if (itr->pid == proc->pid) {
+            existing_pid = true;
+            break;
+        }
+    }
+    hlist_add_head(&proc->proc_node, &binder_procs);//将proc_node节点添加到binder_procs为表头的队列
+    mutex_unlock(&binder_procs_lock);
 
-	//如果/sys/kernel/debug/binder/proc 目录存在，并且pid不存在
-	//在该目录中创建相应pid对应的文件，名称为pid，用来记录binder_proc的状态
-	if (binder_debugfs_dir_entry_proc && !existing_pid) {
-		char strbuf[11];
+    //如果/sys/kernel/debug/binder/proc 目录存在，并且pid不存在
+    //在该目录中创建相应pid对应的文件，名称为pid，用来记录binder_proc的状态
+    if (binder_debugfs_dir_entry_proc && !existing_pid) {
+        char strbuf[11];
 
-		snprintf(strbuf, sizeof(strbuf), "%u", proc->pid);
-		/*
-		 * proc debug entries are shared between contexts.
-		 * Only create for the first PID to avoid debugfs log spamming
-		 * The printing code will anyway print all contexts for a given
-		 * PID so this is not a problem.
-		 */
-		proc->debugfs_entry = debugfs_create_file(strbuf, 0444,
-			binder_debugfs_dir_entry_proc,
-			(void *)(unsigned long)proc->pid,
-			&proc_fops);
-	}
+        snprintf(strbuf, sizeof(strbuf), "%u", proc->pid);
+        /*
+         * proc debug entries are shared between contexts.
+         * Only create for the first PID to avoid debugfs log spamming
+         * The printing code will anyway print all contexts for a given
+         * PID so this is not a problem.
+         */
+        proc->debugfs_entry = debugfs_create_file(strbuf, 0444,
+            binder_debugfs_dir_entry_proc,
+            (void *)(unsigned long)proc->pid,
+            &proc_fops);
+    }
 
-	if (binder_binderfs_dir_entry_proc && !existing_pid) {
-		char strbuf[11];
-		struct dentry *binderfs_entry;
+    if (binder_binderfs_dir_entry_proc && !existing_pid) {
+        char strbuf[11];
+        struct dentry *binderfs_entry;
 
-		snprintf(strbuf, sizeof(strbuf), "%u", proc->pid);
-		/*
-		 * Similar to debugfs, the process specific log file is shared
-		 * between contexts. Only create for the first PID.
-		 * This is ok since same as debugfs, the log file will contain
-		 * information on all contexts of a given PID.
-		 */
-		binderfs_entry = binderfs_create_file(binder_binderfs_dir_entry_proc,
-			strbuf, &proc_fops, (void *)(unsigned long)proc->pid);
-		if (!IS_ERR(binderfs_entry)) {
-			proc->binderfs_entry = binderfs_entry;
-		} else {
-			int error;
+        snprintf(strbuf, sizeof(strbuf), "%u", proc->pid);
+        /*
+         * Similar to debugfs, the process specific log file is shared
+         * between contexts. Only create for the first PID.
+         * This is ok since same as debugfs, the log file will contain
+         * information on all contexts of a given PID.
+         */
+        binderfs_entry = binderfs_create_file(binder_binderfs_dir_entry_proc,
+            strbuf, &proc_fops, (void *)(unsigned long)proc->pid);
+        if (!IS_ERR(binderfs_entry)) {
+            proc->binderfs_entry = binderfs_entry;
+        } else {
+            int error;
 
-			error = PTR_ERR(binderfs_entry);
-			pr_warn("Unable to create file %s in binderfs (error %d)\n",
-				strbuf, error);
-		}
-	}
+            error = PTR_ERR(binderfs_entry);
+            pr_warn("Unable to create file %s in binderfs (error %d)\n",
+                strbuf, error);
+        }
+    }
 
-	return 0;
+    return 0;
 }
 ```
+**binder_open()**职责如下：
 
-**binder_open()** 职责如下：
 - 首先创建了binder_proc结构体实例proc
 - 接着开始初始化一系列成员：tsk, todo, default_priority, pid， delivered_death等
 - 更新了统计数据：binder_proc的创建个数加1
 - 紧接着将初始化好的proc，存放到文件指针filp->private_data中，以便于在之后的mmap、ioctl中获取
 - 将binder_proc链入binder_procs哈希链表中
 - 最后查看是否创建的了/sys/kernel/debug/binde/proc/目录，有的话再创建一个/sys/kernel/debug/binde/proc/pid文件，用来记录binder_proc的状态
+- 
 
-![avatar](https://cdn.nlark.com/yuque/0/2020/png/1759879/1601278060393-6945df61-e592-406f-83eb-7d38ecef9511.png)
 
 
+
+![binder_procs.png](https://cdn.nlark.com/yuque/0/2020/png/1759879/1601278060393-6945df61-e592-406f-83eb-7d38ecef9511.png#height=504&id=uYde0&margin=%5Bobject%20Object%5D&name=binder_procs.png&originHeight=504&originWidth=817&originalType=binary&ratio=1&size=29997&status=done&style=none&width=817)
 # Binder mmap
 与open操作类似，这里的mmap操作对应了Binder驱动中binder_fops的mmap，也就是binder_mmap()。其的作用有如下两个：
 
@@ -864,49 +887,49 @@ static int binder_open(struct inode *nodp, struct file *filp)
 ```c
 static int binder_mmap(struct file *filp, struct vm_area_struct *vma)
 {
-	int ret;
-	struct binder_proc *proc = filp->private_data;//private_data保存了我们open设备时创建的binder_proc信息
-	const char *failure_string;
+    int ret;
+    struct binder_proc *proc = filp->private_data;//private_data保存了我们open设备时创建的binder_proc信息
+    const char *failure_string;
 
-	if (proc->tsk != current->group_leader)
-		return -EINVAL;
+    if (proc->tsk != current->group_leader)
+        return -EINVAL;
 
-	binder_debug(BINDER_DEBUG_OPEN_CLOSE,
-		     "%s: %d %lx-%lx (%ld K) vma %lx pagep %lx\n",
-		     __func__, proc->pid, vma->vm_start, vma->vm_end,
-		     (vma->vm_end - vma->vm_start) / SZ_1K, vma->vm_flags,
-		     (unsigned long)pgprot_val(vma->vm_page_prot));
+    binder_debug(BINDER_DEBUG_OPEN_CLOSE,
+             "%s: %d %lx-%lx (%ld K) vma %lx pagep %lx\n",
+             __func__, proc->pid, vma->vm_start, vma->vm_end,
+             (vma->vm_end - vma->vm_start) / SZ_1K, vma->vm_flags,
+             (unsigned long)pgprot_val(vma->vm_page_prot));
 
-	//mmap 的 buffer 禁止用户进行写操作。mmap 只是为了分配内核空间，传递数据通过 ioctl()
-	if (vma->vm_flags & FORBIDDEN_MMAP_FLAGS) {
-		ret = -EPERM;
-		failure_string = "bad vm_flags";
-		goto err_bad_arg;
-	}
-	// 将 VM_DONTCOP 置起，禁止 拷贝，禁止 写操作
-	vma->vm_flags |= VM_DONTCOPY | VM_MIXEDMAP;
-	vma->vm_flags &= ~VM_MAYWRITE;
+    //mmap 的 buffer 禁止用户进行写操作。mmap 只是为了分配内核空间，传递数据通过 ioctl()
+    if (vma->vm_flags & FORBIDDEN_MMAP_FLAGS) {
+        ret = -EPERM;
+        failure_string = "bad vm_flags";
+        goto err_bad_arg;
+    }
+    // 将 VM_DONTCOP 置起，禁止 拷贝，禁止 写操作
+    vma->vm_flags |= VM_DONTCOPY | VM_MIXEDMAP;
+    vma->vm_flags &= ~VM_MAYWRITE;
 
-	vma->vm_ops = &binder_vm_ops;
-	vma->vm_private_data = proc;
+    vma->vm_ops = &binder_vm_ops;
+    vma->vm_private_data = proc;
 
-	// 再次完善 binder buffer allocator
-	ret = binder_alloc_mmap_handler(&proc->alloc, vma);
-	if (ret)
-		return ret;
-	return 0;
+    // 再次完善 binder buffer allocator
+    ret = binder_alloc_mmap_handler(&proc->alloc, vma);
+    if (ret)
+        return ret;
+    return 0;
 
 err_bad_arg:
-	pr_err("%s: %d %lx-%lx %s failed %d\n", __func__,
-	       proc->pid, vma->vm_start, vma->vm_end, failure_string, ret);
-	return ret;
+    pr_err("%s: %d %lx-%lx %s failed %d\n", __func__,
+           proc->pid, vma->vm_start, vma->vm_end, failure_string, ret);
+    return ret;
 }
 
 
 /**
  * binder_alloc_mmap_handler() - map virtual address space for proc
- * @alloc:	alloc structure for this proc
- * @vma:	vma passed to mmap()
+ * @alloc:  alloc structure for this proc
+ * @vma:    vma passed to mmap()
  *
  * Called by binder_mmap() to initialize the space specified in
  * vma for allocating binder buffers
@@ -917,66 +940,66 @@ err_bad_arg:
  *      -ENOMEM = failed to map memory to given address space
  */
 int binder_alloc_mmap_handler(struct binder_alloc *alloc,
-			      struct vm_area_struct *vma)
+                  struct vm_area_struct *vma)
 {
-	int ret;
-	const char *failure_string;
-	//每一次Binder传输数据时，都会先从Binder内存缓存区中分配一个binder_buffer来存储传输数据
-	struct binder_buffer *buffer;
+    int ret;
+    const char *failure_string;
+    //每一次Binder传输数据时，都会先从Binder内存缓存区中分配一个binder_buffer来存储传输数据
+    struct binder_buffer *buffer;
 
-	mutex_lock(&binder_alloc_mmap_lock);//同步锁
-	if (alloc->buffer_size) {// 不需要重复mmap
-		ret = -EBUSY;
-		failure_string = "already mapped";
-		goto err_already_mapped;
-	}
-	alloc->buffer_size = min_t(unsigned long, vma->vm_end - vma->vm_start,
-				   SZ_4M);
-	mutex_unlock(&binder_alloc_mmap_lock);//释放锁
+    mutex_lock(&binder_alloc_mmap_lock);//同步锁
+    if (alloc->buffer_size) {// 不需要重复mmap
+        ret = -EBUSY;
+        failure_string = "already mapped";
+        goto err_already_mapped;
+    }
+    alloc->buffer_size = min_t(unsigned long, vma->vm_end - vma->vm_start,
+                   SZ_4M);
+    mutex_unlock(&binder_alloc_mmap_lock);//释放锁
 
-	alloc->buffer = (void __user *)vma->vm_start;//指向用户进程内核虚拟空间的 start地址
+    alloc->buffer = (void __user *)vma->vm_start;//指向用户进程内核虚拟空间的 start地址
 
-	//分配物理页的指针数组，数组大小为vma的等效page个数
-	alloc->pages = kcalloc(alloc->buffer_size / PAGE_SIZE,
-			       sizeof(alloc->pages[0]),
-			       GFP_KERNEL);
-	if (alloc->pages == NULL) {
-		ret = -ENOMEM;
-		failure_string = "alloc page array";
-		goto err_alloc_pages_failed;
-	}
+    //分配物理页的指针数组，数组大小为vma的等效page个数
+    alloc->pages = kcalloc(alloc->buffer_size / PAGE_SIZE,
+                   sizeof(alloc->pages[0]),
+                   GFP_KERNEL);
+    if (alloc->pages == NULL) {
+        ret = -ENOMEM;
+        failure_string = "alloc page array";
+        goto err_alloc_pages_failed;
+    }
 
-	buffer = kzalloc(sizeof(*buffer), GFP_KERNEL);//申请一个binder_buffer的内存
-	if (!buffer) {
-		ret = -ENOMEM;
-		failure_string = "alloc buffer struct";
-		goto err_alloc_buf_struct_failed;
-	}
+    buffer = kzalloc(sizeof(*buffer), GFP_KERNEL);//申请一个binder_buffer的内存
+    if (!buffer) {
+        ret = -ENOMEM;
+        failure_string = "alloc buffer struct";
+        goto err_alloc_buf_struct_failed;
+    }
 
-	buffer->user_data = alloc->buffer;//指向用户进程内核虚拟空间的 start地址，即为当前进程mmap的内核空间地址
-	list_add(&buffer->entry, &alloc->buffers);//将binder_buffer地址 加入到所属进程的buffers队列
-	buffer->free = 1;
-	binder_insert_free_buffer(alloc, buffer);//将 当前 buffer 加入到 红黑树 alloc->free_buffers 中，表示当前 buffer 是空闲buffer
-	alloc->free_async_space = alloc->buffer_size / 2;// 将 异步事务 的空间大小设置为 整个空间的一半
-	binder_alloc_set_vma(alloc, vma);
-	mmgrab(alloc->vma_vm_mm);
+    buffer->user_data = alloc->buffer;//指向用户进程内核虚拟空间的 start地址，即为当前进程mmap的内核空间地址
+    list_add(&buffer->entry, &alloc->buffers);//将binder_buffer地址 加入到所属进程的buffers队列
+    buffer->free = 1;
+    binder_insert_free_buffer(alloc, buffer);//将 当前 buffer 加入到 红黑树 alloc->free_buffers 中，表示当前 buffer 是空闲buffer
+    alloc->free_async_space = alloc->buffer_size / 2;// 将 异步事务 的空间大小设置为 整个空间的一半
+    binder_alloc_set_vma(alloc, vma);
+    mmgrab(alloc->vma_vm_mm);
 
-	return 0;
+    return 0;
 
 err_alloc_buf_struct_failed:
-	kfree(alloc->pages);
-	alloc->pages = NULL;
+    kfree(alloc->pages);
+    alloc->pages = NULL;
 err_alloc_pages_failed:
-	alloc->buffer = NULL;
-	mutex_lock(&binder_alloc_mmap_lock);
-	alloc->buffer_size = 0;
+    alloc->buffer = NULL;
+    mutex_lock(&binder_alloc_mmap_lock);
+    alloc->buffer_size = 0;
 err_already_mapped:
-	mutex_unlock(&binder_alloc_mmap_lock);
-	binder_alloc_debug(BINDER_DEBUG_USER_ERROR,
-			   "%s: %d %lx-%lx %s failed %d\n", __func__,
-			   alloc->pid, vma->vm_start, vma->vm_end,
-			   failure_string, ret);
-	return ret;
+    mutex_unlock(&binder_alloc_mmap_lock);
+    binder_alloc_debug(BINDER_DEBUG_USER_ERROR,
+               "%s: %d %lx-%lx %s failed %d\n", __func__,
+               alloc->pid, vma->vm_start, vma->vm_end,
+               failure_string, ret);
+    return ret;
 }
 ```
 首先在内核虚拟地址空间，申请一块与用户虚拟内存相同大小的内存；然后再申请page物理内存，再将同一块物理内存分别映射到内核虚拟地址空间和用户虚拟内存空间，从而实现了用户空间的Buffer和内核空间的Buffer同步操作的功能。
@@ -988,16 +1011,20 @@ err_already_mapped:
 - 在内核分配一块同样页数的内核空间，并把它的物理内存和前面为用户进程分配的内存地址关联。
 - 将刚才分配的内存块加入用户进程内存链表。
 
+​
 
 binder_mmap这个函数中，会申请一块物理内存，然后在用户空间和内核空间同时对应到这块内存上。在这之后，当有Client要发送数据给Server的时候，只需一次，将Client发送过来的数据拷贝到Server端的内核空间指定的内存地址即可，由于这个内存地址在服务端已经同时映射到用户空间，因此无需再做一次复制，Server即可直接访问，整个过程如下图所示：
-![avatar](https://cdn.nlark.com/yuque/0/2020/png/1759879/1601279559463-03d52f64-ebd2-4ece-91d0-d6559e114ba5.png)
+![mmap_and_transaction.png](https://cdn.nlark.com/yuque/0/2020/png/1759879/1601279559463-03d52f64-ebd2-4ece-91d0-d6559e114ba5.png#height=708&id=kpblY&margin=%5Bobject%20Object%5D&name=mmap_and_transaction.png&originHeight=708&originWidth=1196&originalType=binary&ratio=1&size=120117&status=done&style=none&width=1196)
 > - Server在启动之后，调用对/dev/binder设备调用mmap。
 > - 内核中的binder_mmap函数进行对应的处理：申请一块物理内存，然后在用户空间和内核空间同时进行映射。
 > - Client通过BINDER_WRITE_READ命令发送请求，这个请求将先到驱动中，同时需要将数据从Client进程的用户空间拷贝到内核空间。
 > - 驱动通过BR_TRANSACTION通知Server有人发出请求，Server进行处理。由于这块内存也在用户空间进行了映射，因此Server进程的代码可以直接访问。
 
 
+
 这就是我们常说的使用Binder机制，数据只需要经历一次拷贝就可以了，其原理就在这。
+
+
 
 
 # Binder 数据交换
@@ -1011,216 +1038,216 @@ ioctl(mProcess->mDriverFD, BINDER_WRITE_READ, &bwr)
 - bwr：存储了请求数据，其类型是binder_write_read。
 
 binder_write_read其实是一个相对外层的数据结构，其内部会包含一个binder_transaction_data结构的数据。binder_transaction_data包含了发出请求者的标识，请求的目标对象以及请求所需要的参数。它们的关系如下图所示：
-![avatar](https://cdn.nlark.com/yuque/0/2020/png/1759879/1601291303139-8119287e-9fbe-4d30-bba2-80eea8a3a985.png)
+![binder_write_read.png](https://cdn.nlark.com/yuque/0/2020/png/1759879/1601291303139-8119287e-9fbe-4d30-bba2-80eea8a3a985.png#height=1588&id=ClfKk&margin=%5Bobject%20Object%5D&name=binder_write_read.png&originHeight=1588&originWidth=2374&originalType=binary&ratio=1&size=267567&status=done&style=none&width=2374)
 ```c
 static long binder_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
-	int ret;
-	//filp->private_data 在open()binder驱动时，保存了一个创建的binder_proc，即是此时调用进程的binder_proc
-	struct binder_proc *proc = filp->private_data;
-	struct binder_thread *thread;//binder线程
-	unsigned int size = _IOC_SIZE(cmd);
-	void __user *ubuf = (void __user *)arg;
+    int ret;
+    //filp->private_data 在open()binder驱动时，保存了一个创建的binder_proc，即是此时调用进程的binder_proc
+    struct binder_proc *proc = filp->private_data;
+    struct binder_thread *thread;//binder线程
+    unsigned int size = _IOC_SIZE(cmd);
+    void __user *ubuf = (void __user *)arg;
 
-	/*pr_info("binder_ioctl: %d:%d %x %lx\n",
-			proc->pid, current->pid, cmd, arg);*/
+    /*pr_info("binder_ioctl: %d:%d %x %lx\n",
+            proc->pid, current->pid, cmd, arg);*/
 
-	binder_selftest_alloc(&proc->alloc);
+    binder_selftest_alloc(&proc->alloc);
 
-	trace_binder_ioctl(cmd, arg);
+    trace_binder_ioctl(cmd, arg);
 
-	//进入休眠状态，直到中断唤醒
-	ret = wait_event_interruptible(binder_user_error_wait, binder_stop_on_user_error < 2);
-	if (ret)
-		goto err_unlocked;
+    //进入休眠状态，直到中断唤醒
+    ret = wait_event_interruptible(binder_user_error_wait, binder_stop_on_user_error < 2);
+    if (ret)
+        goto err_unlocked;
 
-	//获取binder线程信息，如果是第一次调用ioctl()，则会为该进程创建一个线程
-	thread = binder_get_thread(proc);
-	if (thread == NULL) {
-		ret = -ENOMEM;
-		goto err;
-	}
+    //获取binder线程信息，如果是第一次调用ioctl()，则会为该进程创建一个线程
+    thread = binder_get_thread(proc);
+    if (thread == NULL) {
+        ret = -ENOMEM;
+        goto err;
+    }
 
-	switch (cmd) {
-	case BINDER_WRITE_READ://binder的读写操作，使用频率较高
-		ret = binder_ioctl_write_read(filp, cmd, arg, thread);
-		if (ret)
-			goto err;
-		break;
-	case BINDER_SET_MAX_THREADS: {//设置Binder线程最大个数
-		int max_threads;
+    switch (cmd) {
+    case BINDER_WRITE_READ://binder的读写操作，使用频率较高
+        ret = binder_ioctl_write_read(filp, cmd, arg, thread);
+        if (ret)
+            goto err;
+        break;
+    case BINDER_SET_MAX_THREADS: {//设置Binder线程最大个数
+        int max_threads;
 
-		if (copy_from_user(&max_threads, ubuf,
-				   sizeof(max_threads))) {
-			ret = -EINVAL;
-			goto err;
-		}
-		binder_inner_proc_lock(proc);
-		proc->max_threads = max_threads;
-		binder_inner_proc_unlock(proc);
-		break;
-	}
-	case BINDER_SET_CONTEXT_MGR_EXT: {//设置Service Manager节点，带flag参数， servicemanager进程成为上下文管理者
-		struct flat_binder_object fbo;
+        if (copy_from_user(&max_threads, ubuf,
+                   sizeof(max_threads))) {
+            ret = -EINVAL;
+            goto err;
+        }
+        binder_inner_proc_lock(proc);
+        proc->max_threads = max_threads;
+        binder_inner_proc_unlock(proc);
+        break;
+    }
+    case BINDER_SET_CONTEXT_MGR_EXT: {//设置Service Manager节点，带flag参数， servicemanager进程成为上下文管理者
+        struct flat_binder_object fbo;
 
-		if (copy_from_user(&fbo, ubuf, sizeof(fbo))) {
-			ret = -EINVAL;
-			goto err;
-		}
-		ret = binder_ioctl_set_ctx_mgr(filp, &fbo);
-		if (ret)
-			goto err;
-		break;
-	}
-	case BINDER_SET_CONTEXT_MGR://设置Service Manager节点，不带flag参数， servicemanager进程成为上下文管理者
-		ret = binder_ioctl_set_ctx_mgr(filp, NULL);
-		if (ret)
-			goto err;
-		break;
-	case BINDER_THREAD_EXIT://当binder线程退出，释放binder线程
-		binder_debug(BINDER_DEBUG_THREADS, "%d:%d exit\n",
-			     proc->pid, thread->pid);
-		binder_thread_release(proc, thread);
-		thread = NULL;
-		break;
-	case BINDER_VERSION: {//获取Binder版本信息
-		struct binder_version __user *ver = ubuf;
+        if (copy_from_user(&fbo, ubuf, sizeof(fbo))) {
+            ret = -EINVAL;
+            goto err;
+        }
+        ret = binder_ioctl_set_ctx_mgr(filp, &fbo);
+        if (ret)
+            goto err;
+        break;
+    }
+    case BINDER_SET_CONTEXT_MGR://设置Service Manager节点，不带flag参数， servicemanager进程成为上下文管理者
+        ret = binder_ioctl_set_ctx_mgr(filp, NULL);
+        if (ret)
+            goto err;
+        break;
+    case BINDER_THREAD_EXIT://当binder线程退出，释放binder线程
+        binder_debug(BINDER_DEBUG_THREADS, "%d:%d exit\n",
+                 proc->pid, thread->pid);
+        binder_thread_release(proc, thread);
+        thread = NULL;
+        break;
+    case BINDER_VERSION: {//获取Binder版本信息
+        struct binder_version __user *ver = ubuf;
 
-		if (size != sizeof(struct binder_version)) {
-			ret = -EINVAL;
-			goto err;
-		}
-		if (put_user(BINDER_CURRENT_PROTOCOL_VERSION,
-			     &ver->protocol_version)) {
-			ret = -EINVAL;
-			goto err;
-		}
-		break;
-	}
-	case BINDER_GET_NODE_INFO_FOR_REF: {
-		struct binder_node_info_for_ref info;
+        if (size != sizeof(struct binder_version)) {
+            ret = -EINVAL;
+            goto err;
+        }
+        if (put_user(BINDER_CURRENT_PROTOCOL_VERSION,
+                 &ver->protocol_version)) {
+            ret = -EINVAL;
+            goto err;
+        }
+        break;
+    }
+    case BINDER_GET_NODE_INFO_FOR_REF: {
+        struct binder_node_info_for_ref info;
 
-		if (copy_from_user(&info, ubuf, sizeof(info))) {
-			ret = -EFAULT;
-			goto err;
-		}
+        if (copy_from_user(&info, ubuf, sizeof(info))) {
+            ret = -EFAULT;
+            goto err;
+        }
 
-		ret = binder_ioctl_get_node_info_for_ref(proc, &info);
-		if (ret < 0)
-			goto err;
+        ret = binder_ioctl_get_node_info_for_ref(proc, &info);
+        if (ret < 0)
+            goto err;
 
-		if (copy_to_user(ubuf, &info, sizeof(info))) {
-			ret = -EFAULT;
-			goto err;
-		}
+        if (copy_to_user(ubuf, &info, sizeof(info))) {
+            ret = -EFAULT;
+            goto err;
+        }
 
-		break;
-	}
-	case BINDER_GET_NODE_DEBUG_INFO: {
-		struct binder_node_debug_info info;
+        break;
+    }
+    case BINDER_GET_NODE_DEBUG_INFO: {
+        struct binder_node_debug_info info;
 
-		if (copy_from_user(&info, ubuf, sizeof(info))) {
-			ret = -EFAULT;
-			goto err;
-		}
+        if (copy_from_user(&info, ubuf, sizeof(info))) {
+            ret = -EFAULT;
+            goto err;
+        }
 
-		ret = binder_ioctl_get_node_debug_info(proc, &info);
-		if (ret < 0)
-			goto err;
+        ret = binder_ioctl_get_node_debug_info(proc, &info);
+        if (ret < 0)
+            goto err;
 
-		if (copy_to_user(ubuf, &info, sizeof(info))) {
-			ret = -EFAULT;
-			goto err;
-		}
-		break;
-	}
-	default:
-		ret = -EINVAL;
-		goto err;
-	}
-	ret = 0;
+        if (copy_to_user(ubuf, &info, sizeof(info))) {
+            ret = -EFAULT;
+            goto err;
+        }
+        break;
+    }
+    default:
+        ret = -EINVAL;
+        goto err;
+    }
+    ret = 0;
 err:
-	if (thread)
-		thread->looper_need_return = false;
-	wait_event_interruptible(binder_user_error_wait, binder_stop_on_user_error < 2);
-	if (ret && ret != -ERESTARTSYS)
-		pr_info("%d:%d ioctl %x %lx returned %d\n", proc->pid, current->pid, cmd, arg, ret);
+    if (thread)
+        thread->looper_need_return = false;
+    wait_event_interruptible(binder_user_error_wait, binder_stop_on_user_error < 2);
+    if (ret && ret != -ERESTARTSYS)
+        pr_info("%d:%d ioctl %x %lx returned %d\n", proc->pid, current->pid, cmd, arg, ret);
 err_unlocked:
-	trace_binder_ioctl_done(ret);
-	return ret;
+    trace_binder_ioctl_done(ret);
+    return ret;
 }
 
 static int binder_ioctl_write_read(struct file *filp,
-				unsigned int cmd, unsigned long arg,
-				struct binder_thread *thread)
+                unsigned int cmd, unsigned long arg,
+                struct binder_thread *thread)
 {
-	int ret = 0;
-	struct binder_proc *proc = filp->private_data;
-	unsigned int size = _IOC_SIZE(cmd);
-	void __user *ubuf = (void __user *)arg;
-	struct binder_write_read bwr;
+    int ret = 0;
+    struct binder_proc *proc = filp->private_data;
+    unsigned int size = _IOC_SIZE(cmd);
+    void __user *ubuf = (void __user *)arg;
+    struct binder_write_read bwr;
 
-	if (size != sizeof(struct binder_write_read)) {
-		ret = -EINVAL;
-		goto out;
-	}
-	if (copy_from_user(&bwr, ubuf, sizeof(bwr))) {
-		ret = -EFAULT;
-		goto out;
-	}
-	binder_debug(BINDER_DEBUG_READ_WRITE,
-		     "%d:%d write %lld at %016llx, read %lld at %016llx\n",
-		     proc->pid, thread->pid,
-		     (u64)bwr.write_size, (u64)bwr.write_buffer,
-		     (u64)bwr.read_size, (u64)bwr.read_buffer);
+    if (size != sizeof(struct binder_write_read)) {
+        ret = -EINVAL;
+        goto out;
+    }
+    if (copy_from_user(&bwr, ubuf, sizeof(bwr))) {
+        ret = -EFAULT;
+        goto out;
+    }
+    binder_debug(BINDER_DEBUG_READ_WRITE,
+             "%d:%d write %lld at %016llx, read %lld at %016llx\n",
+             proc->pid, thread->pid,
+             (u64)bwr.write_size, (u64)bwr.write_buffer,
+             (u64)bwr.read_size, (u64)bwr.read_buffer);
 
-	if (bwr.write_size > 0) {
+    if (bwr.write_size > 0) {
         //write_size大于0，表示用户进程有数据发送到驱动，则调用binder_thread_write发送数据
-		ret = binder_thread_write(proc, thread,
-					  bwr.write_buffer,
-					  bwr.write_size,
-					  &bwr.write_consumed);
-		trace_binder_write_done(ret);
-		if (ret < 0) {
+        ret = binder_thread_write(proc, thread,
+                      bwr.write_buffer,
+                      bwr.write_size,
+                      &bwr.write_consumed);
+        trace_binder_write_done(ret);
+        if (ret < 0) {
             //binder_thread_write中有错误发生，则read_consumed设为0，表示kernel没有数据返回给进程
-			bwr.read_consumed = 0;
+            bwr.read_consumed = 0;
             //将bwr返回给用户态调用者，bwr在binder_thread_write中会被修改
-			if (copy_to_user(ubuf, &bwr, sizeof(bwr)))
-				ret = -EFAULT;
-			goto out;
-		}
-	}
-	if (bwr.read_size > 0) {
+            if (copy_to_user(ubuf, &bwr, sizeof(bwr)))
+                ret = -EFAULT;
+            goto out;
+        }
+    }
+    if (bwr.read_size > 0) {
         //read_size大于0， 表示进程用户态地址空间希望有数据返回给它，则调用binder_thread_read进行处理
-		ret = binder_thread_read(proc, thread, bwr.read_buffer,
-					 bwr.read_size,
-					 &bwr.read_consumed,
-					 filp->f_flags & O_NONBLOCK);
-		trace_binder_read_done(ret);
-		binder_inner_proc_lock(proc);
+        ret = binder_thread_read(proc, thread, bwr.read_buffer,
+                     bwr.read_size,
+                     &bwr.read_consumed,
+                     filp->f_flags & O_NONBLOCK);
+        trace_binder_read_done(ret);
+        binder_inner_proc_lock(proc);
         //读取完后，如果proc->todo链表不为空，则唤醒在proc->wait等待队列上的进程
-		if (!binder_worklist_empty_ilocked(&proc->todo))
-			binder_wakeup_proc_ilocked(proc);
-		binder_inner_proc_unlock(proc);
-		if (ret < 0) {
+        if (!binder_worklist_empty_ilocked(&proc->todo))
+            binder_wakeup_proc_ilocked(proc);
+        binder_inner_proc_unlock(proc);
+        if (ret < 0) {
             //如果binder_thread_read返回小于0，可能处理一半就中断了，需要将bwr拷贝回进程的用户态地址
-			if (copy_to_user(ubuf, &bwr, sizeof(bwr)))
-				ret = -EFAULT;
-			goto out;
-		}
-	}
-	binder_debug(BINDER_DEBUG_READ_WRITE,
-		     "%d:%d wrote %lld of %lld, read return %lld of %lld\n",
-		     proc->pid, thread->pid,
-		     (u64)bwr.write_consumed, (u64)bwr.write_size,
-		     (u64)bwr.read_consumed, (u64)bwr.read_size);
+            if (copy_to_user(ubuf, &bwr, sizeof(bwr)))
+                ret = -EFAULT;
+            goto out;
+        }
+    }
+    binder_debug(BINDER_DEBUG_READ_WRITE,
+             "%d:%d wrote %lld of %lld, read return %lld of %lld\n",
+             proc->pid, thread->pid,
+             (u64)bwr.write_consumed, (u64)bwr.write_size,
+             (u64)bwr.read_consumed, (u64)bwr.read_size);
     //处理成功的情况，也需要将bwr拷贝回进程的用户态地址空间
-	if (copy_to_user(ubuf, &bwr, sizeof(bwr))) {
-		ret = -EFAULT;
-		goto out;
-	}
+    if (copy_to_user(ubuf, &bwr, sizeof(bwr))) {
+        ret = -EFAULT;
+        goto out;
+    }
 out:
-	return ret;
+    return ret;
 }
 ```
 binder_ioctl函数对应了ioctl系统调用的处理。这个函数的逻辑比较简单，就是根据ioctl的命令来确定进一步处理的逻辑，具体如下:
@@ -1233,61 +1260,64 @@ binder_ioctl函数对应了ioctl系统调用的处理。这个函数的逻辑比
 - BINDER_THREAD_EXIT：调用binder_free_thread，释放binder_thread。
 - BINDER_VERSION：返回当前的Binder版本号。
 
+​
+
 对于BINDER_WRITE_READ分支处理里，结构还是很清晰的，就是把用户态传递过来的binder_write_read数据结构从用户态拷贝到内核态，然后再根据这一数据结构里的read_size和write_size是否大于0来决定是否进行后续操作。由于这两个值都可能同时存在，于是一个ioctl周期里，有可能同时进行读写。之后的代码则可以进入到binder_thread_write()或是binder_thread_read()，write和read都是相对于用户态来说的，thread也是，就是如果调度到合适的IPCThreadState对象，以线程方式处理用户态的写请求或是读请求。
+​
 
 ## binder_thread_write
 binder_thread_write()的实现相对来说就比较简单，只是通过解析binder_ioctl()得到的BC_*命令，然后再根据命令作出处理。
 ```c
 static int binder_thread_write(struct binder_proc *proc,
-			struct binder_thread *thread,
-			binder_uintptr_t binder_buffer, size_t size,
-			binder_size_t *consumed)
+            struct binder_thread *thread,
+            binder_uintptr_t binder_buffer, size_t size,
+            binder_size_t *consumed)
 {
-	uint32_t cmd;
-	struct binder_context *context = proc->context;//原来Service进程的proc的context
-	void __user *buffer = (void __user *)(uintptr_t)binder_buffer;
-	void __user *ptr = buffer + *consumed;
-	void __user *end = buffer + size;
+    uint32_t cmd;
+    struct binder_context *context = proc->context;//原来Service进程的proc的context
+    void __user *buffer = (void __user *)(uintptr_t)binder_buffer;
+    void __user *ptr = buffer + *consumed;
+    void __user *end = buffer + size;
 
-	while (ptr < end && thread->return_error.cmd == BR_OK) {
-		int ret;
+    while (ptr < end && thread->return_error.cmd == BR_OK) {
+        int ret;
 
-		//拷贝用户空间的cmd命令，addService和getService时，为 BC_TRANSACTION
-		if (get_user(cmd, (uint32_t __user *)ptr))
-			return -EFAULT;
-		ptr += sizeof(uint32_t);
-		trace_binder_command(cmd);
-		if (_IOC_NR(cmd) < ARRAY_SIZE(binder_stats.bc)) {
-			atomic_inc(&binder_stats.bc[_IOC_NR(cmd)]);
-			atomic_inc(&proc->stats.bc[_IOC_NR(cmd)]);
-			atomic_inc(&thread->stats.bc[_IOC_NR(cmd)]);
-		}
-		switch (cmd) {
-		
-		...
+        //拷贝用户空间的cmd命令，addService和getService时，为 BC_TRANSACTION
+        if (get_user(cmd, (uint32_t __user *)ptr))
+            return -EFAULT;
+        ptr += sizeof(uint32_t);
+        trace_binder_command(cmd);
+        if (_IOC_NR(cmd) < ARRAY_SIZE(binder_stats.bc)) {
+            atomic_inc(&binder_stats.bc[_IOC_NR(cmd)]);
+            atomic_inc(&proc->stats.bc[_IOC_NR(cmd)]);
+            atomic_inc(&thread->stats.bc[_IOC_NR(cmd)]);
+        }
+        switch (cmd) {
+        
+        ...
 
-		case BC_TRANSACTION:
-		case BC_REPLY: {
-			struct binder_transaction_data tr;
+        case BC_TRANSACTION:
+        case BC_REPLY: {
+            struct binder_transaction_data tr;
 
-			if (copy_from_user(&tr, ptr, sizeof(tr)))
-				return -EFAULT;
-			ptr += sizeof(tr);
-			binder_transaction(proc, thread, &tr,
-					   cmd == BC_REPLY, 0);
-			break;
-		}
+            if (copy_from_user(&tr, ptr, sizeof(tr)))
+                return -EFAULT;
+            ptr += sizeof(tr);
+            binder_transaction(proc, thread, &tr,
+                       cmd == BC_REPLY, 0);
+            break;
+        }
 
-		...
+        ...
 
-		default:
-			pr_err("%d:%d unknown command %d\n",
-			       proc->pid, thread->pid, cmd);
-			return -EINVAL;
-		}
-		*consumed = ptr - buffer;
-	}
-	return 0;
+        default:
+            pr_err("%d:%d unknown command %d\n",
+                   proc->pid, thread->pid, cmd);
+            return -EINVAL;
+        }
+        *consumed = ptr - buffer;
+    }
+    return 0;
 }
 ```
 BC_系列命令的定义是在枚举型binder_driver_command_protocol中，对于其他的BC_系列命令，处理只是直接完成即可，但对于附带数据的BC_TRANASACTION和BC_REPLY，因为有可能涉及到复杂数据结构的解析以及数据拷贝，于是会通过binder_transaction()来进行传输。
@@ -1656,205 +1686,208 @@ static void binder_transaction(struct binder_proc *proc,
 - 如果对象类型是文件描述符FD，则需要对文件本身的一些引用信息进行更新。
 - 如果执行到这一步，证明该transaction就已经完成了，把它加入到target_thread的todo尾部，等待下一个binder_thread_read()周期的读取过程。因为加入链表是最后一步操作，于是传输过程里的原子性可以得到保证。
 
+​
 
 Client的数据传来后，进行事务处理后，唤醒Server端，Server端进行数据读取。假设我们这里的Server端为ServiceManager，在ServiceManager中有一个循环，不停的向Binder驱动发送读写的信息，读到内容后调用binder_parse()进行解析。
-![avatar](https://cdn.nlark.com/yuque/0/2020/png/1759879/1601302007382-a6b9abe7-4827-41eb-95c6-ed26e5b1305c.png)
+![binder_transaction.png](https://cdn.nlark.com/yuque/0/2020/png/1759879/1601302007382-a6b9abe7-4827-41eb-95c6-ed26e5b1305c.png#height=2496&id=NM0Gw&margin=%5Bobject%20Object%5D&name=binder_transaction.png&originHeight=2496&originWidth=3804&originalType=binary&ratio=1&size=616214&status=done&style=none&width=3804)
+
+
 ## binder_thread_read
 前面已经解释过biner_transaction函数，主要是把binder_transaction.work放入到接收端的todo队列。而binder_thread_read函数主要是处理todo队列中的binder_work对象。
 ```c
 static int binder_thread_read(struct binder_proc *proc,
-			      struct binder_thread *thread,
-			      binder_uintptr_t binder_buffer, size_t size,
-			      binder_size_t *consumed, int non_block)
+                  struct binder_thread *thread,
+                  binder_uintptr_t binder_buffer, size_t size,
+                  binder_size_t *consumed, int non_block)
 {
-	...
+    ...
 
 retry:
-	binder_inner_proc_lock(proc);
-	//优先考虑thread节点的todo链表中有没有工作需要完成
-	wait_for_proc_work = binder_available_for_proc_work_ilocked(thread);
-	binder_inner_proc_unlock(proc);
+    binder_inner_proc_lock(proc);
+    //优先考虑thread节点的todo链表中有没有工作需要完成
+    wait_for_proc_work = binder_available_for_proc_work_ilocked(thread);
+    binder_inner_proc_unlock(proc);
 
-	thread->looper |= BINDER_LOOPER_STATE_WAITING;
+    thread->looper |= BINDER_LOOPER_STATE_WAITING;
 
-	trace_binder_wait_for_work(wait_for_proc_work,
-				   !!thread->transaction_stack,
-				   !binder_worklist_empty(proc, &thread->todo));
-	if (wait_for_proc_work) {
-		if (!(thread->looper & (BINDER_LOOPER_STATE_REGISTERED |
-					BINDER_LOOPER_STATE_ENTERED))) {
-			binder_user_error("%d:%d ERROR: Thread waiting for process work before calling BC_REGISTER_LOOPER or BC_ENTER_LOOPER (state %x)\n",
-				proc->pid, thread->pid, thread->looper);
-			wait_event_interruptible(binder_user_error_wait,
-						 binder_stop_on_user_error < 2);
-		}
-		trace_android_vh_binder_restore_priority(NULL, current);
-		binder_restore_priority(current, proc->default_priority);
-	}
+    trace_binder_wait_for_work(wait_for_proc_work,
+                   !!thread->transaction_stack,
+                   !binder_worklist_empty(proc, &thread->todo));
+    if (wait_for_proc_work) {
+        if (!(thread->looper & (BINDER_LOOPER_STATE_REGISTERED |
+                    BINDER_LOOPER_STATE_ENTERED))) {
+            binder_user_error("%d:%d ERROR: Thread waiting for process work before calling BC_REGISTER_LOOPER or BC_ENTER_LOOPER (state %x)\n",
+                proc->pid, thread->pid, thread->looper);
+            wait_event_interruptible(binder_user_error_wait,
+                         binder_stop_on_user_error < 2);
+        }
+        trace_android_vh_binder_restore_priority(NULL, current);
+        binder_restore_priority(current, proc->default_priority);
+    }
 
-	if (non_block) {
-		if (!binder_has_work(thread, wait_for_proc_work))
-			ret = -EAGAIN;
-	} else {
-		//休眠在这里, wait_for_proc_work为false
-		ret = binder_wait_for_work(thread, wait_for_proc_work);
-	}
+    if (non_block) {
+        if (!binder_has_work(thread, wait_for_proc_work))
+            ret = -EAGAIN;
+    } else {
+        //休眠在这里, wait_for_proc_work为false
+        ret = binder_wait_for_work(thread, wait_for_proc_work);
+    }
 
-	thread->looper &= ~BINDER_LOOPER_STATE_WAITING;
+    thread->looper &= ~BINDER_LOOPER_STATE_WAITING;
 
-	if (ret)
-		return ret;
+    if (ret)
+        return ret;
 
-	while (1) {
-		
-		...
+    while (1) {
+        
+        ...
 
-		switch (w->type) {
-		case BINDER_WORK_TRANSACTION: {
-			binder_inner_proc_unlock(proc);
-			t = container_of(w, struct binder_transaction, work);
-		} break;
-		}
-		...
+        switch (w->type) {
+        case BINDER_WORK_TRANSACTION: {
+            binder_inner_proc_unlock(proc);
+            t = container_of(w, struct binder_transaction, work);
+        } break;
+        }
+        ...
 
-		//数据在内核中封装成结构体binder_transaction传输,
+        //数据在内核中封装成结构体binder_transaction传输,
         //据返回到应用层之后要封装成结构体 binder_transaction_data,所以这里就是将数据从新封装成binder_transaction_data返回给用户空间
-		if (t->buffer->target_node) {
-			struct binder_node *target_node = t->buffer->target_node;
-			struct binder_priority node_prio;
+        if (t->buffer->target_node) {
+            struct binder_node *target_node = t->buffer->target_node;
+            struct binder_priority node_prio;
 
-			//用目标binder_node中记录的cookie值给binder_transaction_data的cookie域赋值
-			//这个值就是目标binder实体的地址
-			trd->target.ptr = target_node->ptr;
-			trd->cookie =  target_node->cookie;
-			node_prio.sched_policy = target_node->sched_policy;
-			node_prio.prio = target_node->min_priority;
-			binder_transaction_priority(current, t, node_prio,
-						    target_node->inherit_rt);
-			cmd = BR_TRANSACTION;
-		} else {
-			trd->target.ptr = 0;
-			trd->cookie = 0;
-			cmd = BR_REPLY;
-		}
-		trd->code = t->code;
-		trd->flags = t->flags;
-		trd->sender_euid = from_kuid(current_user_ns(), t->sender_euid);
+            //用目标binder_node中记录的cookie值给binder_transaction_data的cookie域赋值
+            //这个值就是目标binder实体的地址
+            trd->target.ptr = target_node->ptr;
+            trd->cookie =  target_node->cookie;
+            node_prio.sched_policy = target_node->sched_policy;
+            node_prio.prio = target_node->min_priority;
+            binder_transaction_priority(current, t, node_prio,
+                            target_node->inherit_rt);
+            cmd = BR_TRANSACTION;
+        } else {
+            trd->target.ptr = 0;
+            trd->cookie = 0;
+            cmd = BR_REPLY;
+        }
+        trd->code = t->code;
+        trd->flags = t->flags;
+        trd->sender_euid = from_kuid(current_user_ns(), t->sender_euid);
 
-		t_from = binder_get_txn_from(t);
-		if (t_from) {
-			struct task_struct *sender = t_from->proc->tsk;
+        t_from = binder_get_txn_from(t);
+        if (t_from) {
+            struct task_struct *sender = t_from->proc->tsk;
 
-			trd->sender_pid =
-				task_tgid_nr_ns(sender,
-						task_active_pid_ns(current));
-		} else {
-			trd->sender_pid = 0;
-		}
+            trd->sender_pid =
+                task_tgid_nr_ns(sender,
+                        task_active_pid_ns(current));
+        } else {
+            trd->sender_pid = 0;
+        }
 
-		ret = binder_apply_fd_fixups(proc, t);
-		if (ret) {
-			struct binder_buffer *buffer = t->buffer;
-			bool oneway = !!(t->flags & TF_ONE_WAY);
-			int tid = t->debug_id;
+        ret = binder_apply_fd_fixups(proc, t);
+        if (ret) {
+            struct binder_buffer *buffer = t->buffer;
+            bool oneway = !!(t->flags & TF_ONE_WAY);
+            int tid = t->debug_id;
 
-			if (t_from)
-				binder_thread_dec_tmpref(t_from);
-			buffer->transaction = NULL;
-			binder_cleanup_transaction(t, "fd fixups failed",
-						   BR_FAILED_REPLY);
-			binder_free_buf(proc, buffer);
-			
-			...
+            if (t_from)
+                binder_thread_dec_tmpref(t_from);
+            buffer->transaction = NULL;
+            binder_cleanup_transaction(t, "fd fixups failed",
+                           BR_FAILED_REPLY);
+            binder_free_buf(proc, buffer);
+            
+            ...
 
-			if (cmd == BR_REPLY) {
-				cmd = BR_FAILED_REPLY;
-				if (put_user(cmd, (uint32_t __user *)ptr))
-					return -EFAULT;
-				ptr += sizeof(uint32_t);
-				binder_stat_br(proc, thread, cmd);
-				break;
-			}
-			continue;
-		}
-		trd->data_size = t->buffer->data_size;
-		trd->offsets_size = t->buffer->offsets_size;
-		trd->data.ptr.buffer = (uintptr_t)t->buffer->user_data;
-		trd->data.ptr.offsets = trd->data.ptr.buffer +
-					ALIGN(t->buffer->data_size,
-					    sizeof(void *));
+            if (cmd == BR_REPLY) {
+                cmd = BR_FAILED_REPLY;
+                if (put_user(cmd, (uint32_t __user *)ptr))
+                    return -EFAULT;
+                ptr += sizeof(uint32_t);
+                binder_stat_br(proc, thread, cmd);
+                break;
+            }
+            continue;
+        }
+        trd->data_size = t->buffer->data_size;
+        trd->offsets_size = t->buffer->offsets_size;
+        trd->data.ptr.buffer = (uintptr_t)t->buffer->user_data;
+        trd->data.ptr.offsets = trd->data.ptr.buffer +
+                    ALIGN(t->buffer->data_size,
+                        sizeof(void *));
 
-		tr.secctx = t->security_ctx;
-		if (t->security_ctx) {
-			cmd = BR_TRANSACTION_SEC_CTX;
-			trsize = sizeof(tr);
-		}
-		//将cmd命令写入用户态，此时应该是BR_TRANSACTION
-		if (put_user(cmd, (uint32_t __user *)ptr)) {
-			if (t_from)
-				binder_thread_dec_tmpref(t_from);
+        tr.secctx = t->security_ctx;
+        if (t->security_ctx) {
+            cmd = BR_TRANSACTION_SEC_CTX;
+            trsize = sizeof(tr);
+        }
+        //将cmd命令写入用户态，此时应该是BR_TRANSACTION
+        if (put_user(cmd, (uint32_t __user *)ptr)) {
+            if (t_from)
+                binder_thread_dec_tmpref(t_from);
 
-			binder_cleanup_transaction(t, "put_user failed",
-						   BR_FAILED_REPLY);
+            binder_cleanup_transaction(t, "put_user failed",
+                           BR_FAILED_REPLY);
 
-			return -EFAULT;
-		}
-		ptr += sizeof(uint32_t);
-		//将重新封装后的数据拷贝到用户空间
-		if (copy_to_user(ptr, &tr, trsize)) {
-			if (t_from)
-				binder_thread_dec_tmpref(t_from);
+            return -EFAULT;
+        }
+        ptr += sizeof(uint32_t);
+        //将重新封装后的数据拷贝到用户空间
+        if (copy_to_user(ptr, &tr, trsize)) {
+            if (t_from)
+                binder_thread_dec_tmpref(t_from);
 
-			binder_cleanup_transaction(t, "copy_to_user failed",
-						   BR_FAILED_REPLY);
+            binder_cleanup_transaction(t, "copy_to_user failed",
+                           BR_FAILED_REPLY);
 
-			return -EFAULT;
-		}
-		ptr += trsize;
+            return -EFAULT;
+        }
+        ptr += trsize;
 
-		trace_binder_transaction_received(t);
-		binder_stat_br(proc, thread, cmd);
-	
-		...
+        trace_binder_transaction_received(t);
+        binder_stat_br(proc, thread, cmd);
+    
+        ...
 
-		if (t_from)
-			binder_thread_dec_tmpref(t_from);
-		t->buffer->allow_user_free = 1;
-		if (cmd != BR_REPLY && !(t->flags & TF_ONE_WAY)) {
-			//binder_transaction节点插入了目标线程的transaction_stack堆栈，而且是以to_thread域来连接堆栈中的其他节点
-			binder_inner_proc_lock(thread->proc);
-			t->to_parent = thread->transaction_stack;
-			t->to_thread = thread;
-			thread->transaction_stack = t;
-			binder_inner_proc_unlock(thread->proc);
-		} else {
-			//TF_ONE_WAY情况，此时会删除binder_transaction节点
-			binder_free_transaction(t);
-		}
-		break;
-	}
+        if (t_from)
+            binder_thread_dec_tmpref(t_from);
+        t->buffer->allow_user_free = 1;
+        if (cmd != BR_REPLY && !(t->flags & TF_ONE_WAY)) {
+            //binder_transaction节点插入了目标线程的transaction_stack堆栈，而且是以to_thread域来连接堆栈中的其他节点
+            binder_inner_proc_lock(thread->proc);
+            t->to_parent = thread->transaction_stack;
+            t->to_thread = thread;
+            thread->transaction_stack = t;
+            binder_inner_proc_unlock(thread->proc);
+        } else {
+            //TF_ONE_WAY情况，此时会删除binder_transaction节点
+            binder_free_transaction(t);
+        }
+        break;
+    }
 
 done:
 
-	*consumed = ptr - buffer;
-	binder_inner_proc_lock(proc);
-	if (proc->requested_threads == 0 &&
-	    list_empty(&thread->proc->waiting_threads) &&
-	    proc->requested_threads_started < proc->max_threads &&
-	    (thread->looper & (BINDER_LOOPER_STATE_REGISTERED |
-	     BINDER_LOOPER_STATE_ENTERED)) /* the user-space code fails to */
-	     /*spawn a new thread if we leave this out */) {
-		proc->requested_threads++;
-		binder_inner_proc_unlock(proc);
-		
-		...
+    *consumed = ptr - buffer;
+    binder_inner_proc_lock(proc);
+    if (proc->requested_threads == 0 &&
+        list_empty(&thread->proc->waiting_threads) &&
+        proc->requested_threads_started < proc->max_threads &&
+        (thread->looper & (BINDER_LOOPER_STATE_REGISTERED |
+         BINDER_LOOPER_STATE_ENTERED)) /* the user-space code fails to */
+         /*spawn a new thread if we leave this out */) {
+        proc->requested_threads++;
+        binder_inner_proc_unlock(proc);
+        
+        ...
 
-		if (put_user(BR_SPAWN_LOOPER, (uint32_t __user *)buffer))
-			return -EFAULT;
-		binder_stat_br(proc, thread, BR_SPAWN_LOOPER);
-	} else
-		binder_inner_proc_unlock(proc);
-	return 0;
+        if (put_user(BR_SPAWN_LOOPER, (uint32_t __user *)buffer))
+            return -EFAULT;
+        binder_stat_br(proc, thread, BR_SPAWN_LOOPER);
+    } else
+        binder_inner_proc_unlock(proc);
+    return 0;
 }
 ```
 
@@ -1873,6 +1906,7 @@ done:
    - 使用binder_thread_write()函数来发送请求或返回结果，在binder_thread_write()函数中，通过调用binder_transaction()函数来转发请求并返回结果。当收到请求时，binder_transaction()函数会通过对象的handle找到对象所在的进程，如果handle结果为空，则认为此对象是context_mgr，然后把请求发给context_mgr所在的进程，并将请求中所有的Binder对象放到RB树中，最后把请求放到目标进程的队列中以等待目标进程的读取。
    - 使用binder_thread_read()函数来读取结果。
    - 在函数binder_parse()中实现数据解析工作。
+
 
 
 参考：
