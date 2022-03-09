@@ -15,7 +15,7 @@ date: 2021-11-11 22:17:11
 
 
 # 背景
-liunx上要用翻墙还是比较费劲的，当然如果你能忍受蓝灯这种龟速的网络就当我没说。因为我用的服务商推荐用clash，当然用ssr这些也行。但既然推荐是clash，咱还是尝试着linux上装clash，总的来说还是比较麻烦的。为了防止后续换系统忘记也好，或者是分享给需要的朋友也好，这里还是做一个简单的记录。
+Linux上要用翻墙还是比较费劲的，当然如果你能忍受蓝灯这种龟速的网络就当我没说。因为我用的服务商推荐用clash，当然用ssr这些也行。但既然推荐是clash，咱还是尝试着linux上装clash，总的来说还是比较麻烦的。为了防止后续换系统忘记也好，或者是分享给需要的朋友也好，这里还是做一个简单的记录。
 
 # 下载
 clash正式的发行版，是通过github上下载的。对应的地址：[https://github.com/Dreamacro/clash/releases](https://github.com/Dreamacro/clash/releases)
