@@ -1,5 +1,5 @@
 ---
-title: Android 12-A/B System Update Engine
+title: Android 12-A/B System Update Engine 04
 categories:
   - Android
 tags:
@@ -8,8 +8,8 @@ tags:
   - A/B System
 description: Android 12-A/B System Update Engine
 comments: true
-abbrlink: f4e671d8
-date: 2021-10-27 22:07:11
+abbrlink: 1adb8a40
+date: 2021-10-30 22:07:11
 ---
 <!--more-->
 <meta name="referrer" content="no-referrer"/>
