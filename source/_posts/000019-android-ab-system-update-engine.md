@@ -1,18 +1,33 @@
 ---
-title: Android 12-OTA
+title: Android 12-A/B System Update Engine-简介
+top: 98
 categories:
   - Android
 tags:
   - Android
   - OTA
   - A/B System
-description: Android 12-OTA
+description: Android 12-A/B System Update Engine-简介
 comments: true
 abbrlink: dd679192
 date: 2021-10-27 22:06:42
 ---
 <!--more-->
 <meta name="referrer" content="no-referrer"/>
+
+
+# Android 12-A/B System Update Engine
+[Android 12-A/B System Update Engine-简介](https://journeyos.github.io/archives/dd679192.html)
+[Android 12-A/B System Update Engine-01](https://journeyos.github.io/archives/f4e627d8.html)
+[Android 12-A/B System Update Engine-02](https://journeyos.github.io/archives/f4e511d8.html)
+[Android 12-A/B System Update Engine-03](https://journeyos.github.io/archives/84bf1fe3.html)
+[Android 12-A/B System Update Engine-04](https://journeyos.github.io/archives/1adb8a40.html)
+[Android 12-A/B System Update Engine-05](https://journeyos.github.io/archives/6ddcbad6.html)
+[Android 12-A/B System Update Engine-06](https://journeyos.github.io/archives/f4d5eb6c.html)
+[Android 12-A/B System Update Engine-07](https://journeyos.github.io/archives/83d2dbfa.html)
+[Android 12-A/B System Update Engine-08](https://journeyos.github.io/archives/136dc66b.html)
+
+
 
 # 简介
 OTA是Over-the-Air的简称，OTA升级可以理解为用户正常使用过程中进行升级，OTA 升级旨在升级基础操作系统、系统分区上安装的只读应用和/或时区规则。

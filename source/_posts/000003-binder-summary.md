@@ -1,5 +1,6 @@
 ---
 title: Binder概述
+top: 100
 categories:
   - Android
 tags:
@@ -8,13 +9,14 @@ tags:
 description: Binder基本概念、原理，Binder机制系列文章列表
 comments: true
 abbrlink: d6aea0f1
-date: 2021-10-07 17:26:26
+date: 2021-10-09 17:26:26
 ---
 <!--more-->
 <meta name="referrer" content="no-referrer"/>
 
 
 # Binder机制文章列表
+[Binder概述](https://journeyos.github.io/archives/d6aea0f1.html)
 [Binder机制01-驱动](https://journeyos.github.io/archives/3e87e0ce.html)
 [Binder机制02-ServiceManager](https://journeyos.github.io/archives/f17b1d52.html)
 [Binder机制03-Framework-Native](https://journeyos.github.io/archives/937d16d8.html)
@@ -23,6 +25,7 @@ date: 2021-10-07 17:26:26
 [Binder机制06-框架](https://journeyos.github.io/archives/4e7f84b4.html)
 [Binder机制07-实例分析](https://journeyos.github.io/archives/d30c7ecb.html)
 [Binder机制08-总结](https://journeyos.github.io/archives/720ded9.html)
+[Ashmem简介（Android IPC传输大数据）](https://journeyos.github.io/archives/f1684132.html)
 
 # 简介
 在Android的中，我们知道每个应用都是一个独立的进程，有一个独立的虚拟机，应用和应用之间的内存是不能共享数据的，但是我们用到Activity、Service、Context、provider等功能恰恰做了很多数据传输。这就涉及到了我们了解的进程间通信机制-IPC。

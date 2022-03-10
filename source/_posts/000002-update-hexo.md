@@ -178,6 +178,37 @@ related_posts:
     isExcerpt: false
 ```
 
+## 文章排序
+安装插件命令如下：
+```bash
+npm install hexo-generator-index-pin-top --save
+```
+然后打开任何一篇博客,加上top属性,top后面数字越大优先级越大。
+```bash
+top: 01
+```
+修改node_modules/hexo-generator-index/lib/generator.js
+就可以变成：
+1. 默认按照发布时间排序
+2. 设置top可以置顶，top的值越大优先级越大
+```bash
+//sort(posts.data, (a, b) => (b.sticky || 0) - (a.sticky || 0));
+posts.data = posts.data.sort(function(a, b) {
+    if(a.top && b.top) { // 两篇文章top都有定义
+        if(a.top == b.top) return b.date - a.date; // 若top值一样则按照文章日期降序排
+        else return b.top - a.top; // 否则按照top值降序排
+    }
+    else if(a.top && !b.top) { // 以下是只有一篇文章top有定义，那么将有top的排在前面（这里用异或操作居然不行233）
+        return -1;
+    }
+    else if(!a.top && b.top) {
+        return 1;
+    }
+    else return b.date - a.date; // 都没定义按照文章日期降序排
+});
+```
+
+
 
 ## 本地搜索功能
 安装插件命令如下：
