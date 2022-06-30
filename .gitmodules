@@ -1,0 +1,6 @@
+[submodule "themes/black-blue"]
+	path = themes/black-blue
+	url = https://github.com/maochunguang/black-blue.git
+[submodule "themes/next"]
+	path = themes/next
+	url = https://github.com/theme-next/hexo-theme-next
