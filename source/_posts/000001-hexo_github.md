@@ -34,22 +34,22 @@ $ sudo npm install
 $ hexo generate
 $ hexo deploy
 ```
-> 这个blog文件夹我们在github上也新建一个仓来管理，方便后续换电脑等情况维护（https://github.com/journeyOS/blog）
+> 这个blog文件夹我们在github上也新建一个仓来管理，方便后续换电脑等情况维护（https://github.com/i-rtfsc/blog）
 > blog下放置的就是我们博客的配置文件，博客的源md文件等等
 
 然后通过 http://localhost:4000 查看本地博客。
 
 # 关联GitHub
-- 注册并登陆GitHub账号后，新建仓库，名称必须为user.github.io，如journeyOS.github.io
+- 注册并登陆GitHub账号后，新建仓库，名称必须为user.github.io，如i-rtfsc.github.io
 - 修改_config.yml
 
 ``` java
 deploy:
   type: git
-  repository: https://github.com/journeyOS/journeyOS.github.io.git
+  repository: https://github.com/i-rtfsc/i-rtfsc.github.io.git
   branch: master
 ```
-> https://github.com/journeyOS/journeyOS.github.io.git放置的是生成html后的文件
+> https://github.com/i-rtfsc/i-rtfsc.github.io.git放置的是生成html后的文件
 
 
 重新执行

@@ -19,16 +19,16 @@ comments: true
 ```bash
 sudo npm install -g hexo
 ```
-新建一个用于存放博客文件的文件夹，我们为了后续方便更新文章或者在不同电脑使用，把放置博客的文件也托管到github上。如我自己的[博客源文件](https://github.com/journeyOS/blog)
-而[https://github.com/journeyOS/journeyOS.github.io](https://github.com/journeyOS/journeyOS.github.io)就放置静态网页，其中project名字是journeyOS.github.io要跟你github名字对上。
+新建一个用于存放博客文件的文件夹，我们为了后续方便更新文章或者在不同电脑使用，把放置博客的文件也托管到github上。如我自己的[博客源文件](https://github.com/i-rtfsc/blog)
+而[https://github.com/i-rtfsc/i-rtfsc.github.io](https://github.com/i-rtfsc/i-rtfsc.github.io)就放置静态网页，其中project名字是i-rtfsc.github.io要跟你github名字对上。
 在博客源文件夹下的_config.yml文件添加如下：
 ```bash
 deploy:
   type: git
-  repository: https://github.com/journeyOS/journeyOS.github.io.git
+  repository: https://github.com/i-rtfsc/i-rtfsc.github.io.git
   branch: master
 ```
-这样，你每写完一遍博客并执行hexo deploy，就会自动把静态网页上传到journeyOS.github.io仓。
+这样，你每写完一遍博客并执行hexo deploy，就会自动把静态网页上传到i-rtfsc.github.io仓。
 
 
 # 更新 node
@@ -43,7 +43,7 @@ sudo npm cache clean -f
 
 
 # 更新 hexo
-进入自己的[博客目录](https://github.com/journeyOS/blog)，执行如下命令：
+进入自己的[博客目录](https://github.com/i-rtfsc/blog)，执行如下命令：
 
 - 更新 package.json 中的 hexo 及个插件版本
 ```bash
@@ -114,7 +114,7 @@ npm install hexo-abbrlink --save
 ```
 修改配置文件_config.yml如下：
 ```bash
-url: http://journeyOS.com
+url: http://i-rtfsc.com
 root: /
 permalink: archives/:abbrlink.html
 abbrlink:
@@ -149,7 +149,7 @@ pagination_dir: page
 ## Docs: https://hexo.io/docs/deployment.html
 deploy:
   type: git
-  repository: https://github.com/journeyOS/journeyOS.github.io.git
+  repository: https://github.com/i-rtfsc/i-rtfsc.github.io.git
   branch: master
 ```
 
@@ -304,7 +304,7 @@ footer:
 # Github角标
 github_banner:
   enable: true
-  permalink: https://github.com/journeyOS
+  permalink: https://github.com/i-rtfsc
   title: Follow me on GitHub
 ```
 
@@ -312,7 +312,7 @@ github_banner:
 ## 社交网站链接设置
 ```bash
 social:
-  GitHub: https://github.com/journeyOS || github
+  GitHub: https://github.com/i-rtfsc || github
   E-Mail: mailto:anqi.huang@outlook.com || envelope
 ```
 
@@ -612,11 +612,11 @@ busuanzi_count:
 # For more information: https://gitalk.github.io, https://github.com/gitalk/gitalk
 gitalk:
   enable: true
-  github_id: journeyOS # 你的github用户名(GitHub repo owner)
-  repo: journeyOS.github.io # Repository name to store issues
+  github_id: i-rtfsc # 你的github用户名(GitHub repo owner)
+  repo: i-rtfsc.github.io # Repository name to store issues
   client_id: fe0e1f117dc426e14e98 # GitHub Application Client ID
   client_secret: b5e4d8cb3d52a38ce7bb19f2894fbc6d7248b8d4 # GitHub Application Client Secret
-  admin_user: journeyOS # GitHub repo owner and collaborators, only these guys can initialize gitHub issues
+  admin_user: i-rtfsc # GitHub repo owner and collaborators, only these guys can initialize gitHub issues
   distraction_free_mode: true # Facebook-like distraction free mode
   # Gitalk's display language depends on user's browser or system environment
   # If you want everyone visiting your site to see a uniform language, you can set a force language value

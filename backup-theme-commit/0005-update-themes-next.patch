@@ -153,7 +153,7 @@ index 61cc72d..bb19972 100644
  social:
 -  #GitHub: https://github.com/yourname || fab fa-github
 -  #E-Mail: mailto:yourname@gmail.com || fa fa-envelope
-+  GitHub: https://github.com/journeyOS || github
++  GitHub: https://github.com/i-rtfsc || github
 +  E-Mail: mailto:anqi.huang@outlook.com || envelope
    #Weibo: https://weibo.com/yourname || fab fa-weibo
    #Google: https://plus.google.com/yourname || fab fa-google
@@ -291,7 +291,7 @@ index 61cc72d..bb19972 100644
 -  enable: false
 -  permalink: https://github.com/yourname
 +  enable: true
-+  permalink: https://github.com/journeyOS
++  permalink: https://github.com/i-rtfsc
    title: Follow me on GitHub
  
  
@@ -329,11 +329,11 @@ index 61cc72d..bb19972 100644
 -  client_secret: # GitHub Application Client Secret
 -  admin_user: # GitHub repo owner and collaborators, only these guys can initialize gitHub issues
 +  enable: true
-+  github_id: journeyOS # 你的github用户名(GitHub repo owner)
-+  repo: journeyOS.github.io # Repository name to store issues
++  github_id: i-rtfsc # 你的github用户名(GitHub repo owner)
++  repo: i-rtfsc.github.io # Repository name to store issues
 +  client_id: fe0e1f117dc426e14e98 # GitHub Application Client ID
 +  client_secret: b5e4d8cb3d52a38ce7bb19f2894fbc6d7248b8d4 # GitHub Application Client Secret
-+  admin_user: journeyOS # GitHub repo owner and collaborators, only these guys can initialize gitHub issues
++  admin_user: i-rtfsc # GitHub repo owner and collaborators, only these guys can initialize gitHub issues
    distraction_free_mode: true # Facebook-like distraction free mode
    # Gitalk's display language depends on user's browser or system environment
    # If you want everyone visiting your site to see a uniform language, you can set a force language value

@@ -15,16 +15,16 @@ date: 2021-10-08 22:04:13
 
 
 # Binder机制文章列表
-[Binder概述](https://journeyos.github.io/archives/d6aea0f1.html)
-[Binder机制01-驱动](https://journeyos.github.io/archives/3e87e0ce.html)
-[Binder机制02-ServiceManager](https://journeyos.github.io/archives/f17b1d52.html)
-[Binder机制03-Framework-Native](https://journeyos.github.io/archives/937d16d8.html)
-[Binder机制04-Framework-Jave](https://journeyos.github.io/archives/73029508.html)
-[Binder机制05-AIDL](https://journeyos.github.io/archives/ed3eb50b.html)
-[Binder机制06-框架](https://journeyos.github.io/archives/4e7f84b4.html)
-[Binder机制07-实例分析](https://journeyos.github.io/archives/d30c7ecb.html)
-[Binder机制08-总结](https://journeyos.github.io/archives/720ded9.html)
-[Ashmem简介（Android IPC传输大数据）](https://journeyos.github.io/archives/f1684132.html)
+[Binder概述](https://i-rtfsc.github.io/archives/d6aea0f1.html)
+[Binder机制01-驱动](https://i-rtfsc.github.io/archives/3e87e0ce.html)
+[Binder机制02-ServiceManager](https://i-rtfsc.github.io/archives/f17b1d52.html)
+[Binder机制03-Framework-Native](https://i-rtfsc.github.io/archives/937d16d8.html)
+[Binder机制04-Framework-Jave](https://i-rtfsc.github.io/archives/73029508.html)
+[Binder机制05-AIDL](https://i-rtfsc.github.io/archives/ed3eb50b.html)
+[Binder机制06-框架](https://i-rtfsc.github.io/archives/4e7f84b4.html)
+[Binder机制07-实例分析](https://i-rtfsc.github.io/archives/d30c7ecb.html)
+[Binder机制08-总结](https://i-rtfsc.github.io/archives/720ded9.html)
+[Ashmem简介（Android IPC传输大数据）](https://i-rtfsc.github.io/archives/f1684132.html)
 
 
 # 前言
@@ -340,8 +340,8 @@ finish:
 }
 ```
 
-- 调用talkWithDriver()函数跟驱动交互，在[Binder机制02-ServiceManager](https://journeyos.github.io/archives/f17b1d52.html)章节中我们讲过talkWithDriver()函数调用binder_ioctl()跟驱动交互的细节，这里不在展开描述
-- 根据binder驱动处理后的结果做操作，BR码在[Binder机制01-驱动](https://journeyos.github.io/archives/3e87e0ce.html)有描述
+- 调用talkWithDriver()函数跟驱动交互，在[Binder机制02-ServiceManager](https://i-rtfsc.github.io/archives/f17b1d52.html)章节中我们讲过talkWithDriver()函数调用binder_ioctl()跟驱动交互的细节，这里不在展开描述
+- 根据binder驱动处理后的结果做操作，BR码在[Binder机制01-驱动](https://i-rtfsc.github.io/archives/3e87e0ce.html)有描述
 
 
 ### linkToDeath()
@@ -398,7 +398,7 @@ status_t IPCThreadState::requestDeathNotification(int32_t handle, BpBinder* prox
     return NO_ERROR;
 }
 ```
-将BC_REQUEST_DEATH_NOTIFICATION（请求接收死亡通知）写到mOut中。BC码在[Binder机制01-驱动](https://journeyos.github.io/archives/3e87e0ce.html)有描述
+将BC_REQUEST_DEATH_NOTIFICATION（请求接收死亡通知）写到mOut中。BC码在[Binder机制01-驱动](https://i-rtfsc.github.io/archives/3e87e0ce.html)有描述
 
 #### IPCThreadState.flushCommands()
 ```cpp
@@ -420,7 +420,7 @@ void IPCThreadState::flushCommands()
     }
 }
 ```
-调用talkWithDriver和binder驱动进行交互，在[Binder机制02-ServiceManager](https://journeyos.github.io/archives/f17b1d52.html)章节中我们讲过talkWithDriver()函数调用binder_ioctl()跟驱动交互的细节，这里不在展开描述。
+调用talkWithDriver和binder驱动进行交互，在[Binder机制02-ServiceManager](https://i-rtfsc.github.io/archives/f17b1d52.html)章节中我们讲过talkWithDriver()函数调用binder_ioctl()跟驱动交互的细节，这里不在展开描述。
 
 ### unlinkToDeath()
 ```cpp
@@ -693,7 +693,7 @@ status_t BBinder::onTransact(
     }
 }
 ```
-没有什么实际的内容，在[Binder机制02-ServiceManager](https://journeyos.github.io/archives/f17b1d52.html)章节中提到过编写实际的Binder服务端程序的时候应该是会重载这个函数，以提供实际的功能。事实是否如此呢，我们可以带着这个疑问在下文中寻找答案。
+没有什么实际的内容，在[Binder机制02-ServiceManager](https://i-rtfsc.github.io/archives/f17b1d52.html)章节中提到过编写实际的Binder服务端程序的时候应该是会重载这个函数，以提供实际的功能。事实是否如此呢，我们可以带着这个疑问在下文中寻找答案。
 > BBinder的代码不多，看样子主要还是依靠具体服务端的特性来添加相应的功能的。
 > 还有就是像attachObject、detachObject、findObject的功能是通过BpBinder中的ObjectManager来实现的。
 
@@ -883,7 +883,7 @@ sp<ProcessState> ProcessState::self()
 }
 ```
 ProcessState代表进程状态，一个进程只有一个ProcessState对象。ProcessState采用了单例的模式保存了一个ProcessState全局对象gProcess，供每个线程使用。
-这里的new ProcessState(kDefaultDriver)其实就是去打开binder驱动等操作，如果看过[Binder机制02-ServiceManager](https://journeyos.github.io/archives/f17b1d52.html)或者[Ashmem简介（Android IPC传输大数据）](https://journeyos.github.io/archives/f1684132.html)会这流程有所了解，为了照顾没看过这两篇文档的同学，这里我们还是把之前的分析拷贝过来。
+这里的new ProcessState(kDefaultDriver)其实就是去打开binder驱动等操作，如果看过[Binder机制02-ServiceManager](https://i-rtfsc.github.io/archives/f17b1d52.html)或者[Ashmem简介（Android IPC传输大数据）](https://i-rtfsc.github.io/archives/f1684132.html)会这流程有所了解，为了照顾没看过这两篇文档的同学，这里我们还是把之前的分析拷贝过来。
 ### new ProcessState(driver)
 ```bash
 http://aospxref.com/android-11.0.0_r21/xref/frameworks/native/libs/binder/ProcessState.cpp
@@ -1271,7 +1271,7 @@ Status ServiceManager::addService(const std::string& name, const sp<IBinder>& bi
     return Status::ok();
 }
 ```
-这一个过程在[Binder机制02-ServiceManager](https://journeyos.github.io/archives/f17b1d52.html)章节中有讲解，这里就不展开描述。
+这一个过程在[Binder机制02-ServiceManager](https://i-rtfsc.github.io/archives/f17b1d52.html)章节中有讲解，这里就不展开描述。
 
 ## 小结
 

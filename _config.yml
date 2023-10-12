@@ -13,7 +13,7 @@ timezone: UTC
 
 # 文章永久链接插件
 # npm install hexo-abbrlink --save
-url: http://journeyOS.com
+url: http://i-rtfsc.com
 root: /
 permalink: archives/:abbrlink.html
 abbrlink:
@@ -40,7 +40,7 @@ pagination_dir: page
 ## Docs: https://hexo.io/docs/deployment.html
 deploy:
   type: git
-  repository: git@github.com:journeyOS/journeyOS.github.io.git
+  repository: git@github.com:i-rtfsc/i-rtfsc.github.io.git
   branch: master
 
 

@@ -35,7 +35,7 @@ feature
 │   │   └── JosFeature.h
 │   ├── java
 │   │   └── com
-│   │       └── journeyOS
+│   │       └── i-rtfsc
 │   │           └── JosFeature.java
 │   └── makefile
 │       └── JosFeature.mk
@@ -109,9 +109,9 @@ feature可以在三个代码空间使用：
 
 编译完成后，上述的代码会生成到：feature/build_out/ 目录下。
 ### java
-java中使用feature时，先import com.journeyOS.JosFeature，然后就可以直接使用对应的变量了。如下：
+java中使用feature时，先import com.i-rtfsc.JosFeature，然后就可以直接使用对应的变量了。如下：
 ```java
-import com.journeyOS.JosFeature
+import com.i-rtfsc.JosFeature
 
 if (JosFeature.JOS_FEATURE_AI_SERVICE) {
     //TODO
@@ -153,8 +153,8 @@ features.cof是由python脚本来解释的，解释程序的路径为：feature/
 综上，feature功能是一个在编译期用python脚本解析features.cof文件，生成三个代码空间的控制变量代码文件，最终被静态添加到目标程序中的过程。
 
 # 附加
-生成的com.journeyOS.JosFeature还可以编译到framework.jar中
+生成的com.i-rtfsc.JosFeature还可以编译到framework.jar中
 
 # 代码
-[feature](https://github.com/journeyOS/feature)
+[feature](https://github.com/i-rtfsc/feature)
 

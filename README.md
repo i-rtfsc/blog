@@ -1,5 +1,5 @@
 # 博客地址
-https://journeyos.github.io/
+https://i-rtfsc.github.io/
 
 
 # 常见命令:

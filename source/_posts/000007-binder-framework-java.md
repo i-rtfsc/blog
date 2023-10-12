@@ -15,20 +15,20 @@ date: 2021-10-08 22:05:40
 
 
 # Binder机制文章列表
-[Binder概述](https://journeyos.github.io/archives/d6aea0f1.html)
-[Binder机制01-驱动](https://journeyos.github.io/archives/3e87e0ce.html)
-[Binder机制02-ServiceManager](https://journeyos.github.io/archives/f17b1d52.html)
-[Binder机制03-Framework-Native](https://journeyos.github.io/archives/937d16d8.html)
-[Binder机制04-Framework-Jave](https://journeyos.github.io/archives/73029508.html)
-[Binder机制05-AIDL](https://journeyos.github.io/archives/ed3eb50b.html)
-[Binder机制06-框架](https://journeyos.github.io/archives/4e7f84b4.html)
-[Binder机制07-实例分析](https://journeyos.github.io/archives/d30c7ecb.html)
-[Binder机制08-总结](https://journeyos.github.io/archives/720ded9.html)
-[Ashmem简介（Android IPC传输大数据）](https://journeyos.github.io/archives/f1684132.html)
+[Binder概述](https://i-rtfsc.github.io/archives/d6aea0f1.html)
+[Binder机制01-驱动](https://i-rtfsc.github.io/archives/3e87e0ce.html)
+[Binder机制02-ServiceManager](https://i-rtfsc.github.io/archives/f17b1d52.html)
+[Binder机制03-Framework-Native](https://i-rtfsc.github.io/archives/937d16d8.html)
+[Binder机制04-Framework-Jave](https://i-rtfsc.github.io/archives/73029508.html)
+[Binder机制05-AIDL](https://i-rtfsc.github.io/archives/ed3eb50b.html)
+[Binder机制06-框架](https://i-rtfsc.github.io/archives/4e7f84b4.html)
+[Binder机制07-实例分析](https://i-rtfsc.github.io/archives/d30c7ecb.html)
+[Binder机制08-总结](https://i-rtfsc.github.io/archives/720ded9.html)
+[Ashmem简介（Android IPC传输大数据）](https://i-rtfsc.github.io/archives/f1684132.html)
 
 
 # 前言
-在[Binder机制03-Framework-Native](https://journeyos.github.io/archives/937d16d8.html)章节里我们分析了native(C/C++)层的binder架构，Android应用程序使用Java语言开发，Binder框架自然也少不了在Java层提供接口。所以Binder在framework层，采用JNI技术来调用native(C/C++)层的binder架构，最终把服务注册到Native层的ServiceManager中。
+在[Binder机制03-Framework-Native](https://i-rtfsc.github.io/archives/937d16d8.html)章节里我们分析了native(C/C++)层的binder架构，Android应用程序使用Java语言开发，Binder框架自然也少不了在Java层提供接口。所以Binder在framework层，采用JNI技术来调用native(C/C++)层的binder架构，最终把服务注册到Native层的ServiceManager中。
 应用层的进程通过Framework的接口，其实也就是经过JNI技术进入Native C\C++，最终在Native层的ServiceManager中得到服务handle，最终转成相应的服务对象。
 
 - Binder Framework JNI：[http://aospxref.com/android-11.0.0_r21/xref/frameworks/base/core/jni/](http://aospxref.com/android-11.0.0_r21/xref/frameworks/base/core/jni/)
@@ -293,7 +293,7 @@ static jobject android_os_BinderInternal_getContextObject(JNIEnv* env, jobject c
     return javaObjectForIBinder(env, b);
 }
 ```
-看到ProcessState::self()->getContextObject(NULL)这行代码，不能发现在[Binder机制03-Framework-Native](https://journeyos.github.io/archives/937d16d8.html)已经分析过，最终等价于 new BpBinder(0)，这里就不重复展开了。
+看到ProcessState::self()->getContextObject(NULL)这行代码，不能发现在[Binder机制03-Framework-Native](https://i-rtfsc.github.io/archives/937d16d8.html)已经分析过，最终等价于 new BpBinder(0)，这里就不重复展开了。
 
 #### javaObjectForIBinder()
 ```cpp
@@ -426,7 +426,7 @@ public ServiceManagerProxy(IBinder remote) {
     private IServiceManager mServiceManager;
 }
 ```
-  IServiceManager其实就是[IServiceManager.aidl](http://aospxref.com/android-11.0.0_r21/xref/frameworks/native/libs/binder/aidl/android/os/IServiceManager.aidl#30)，最终调到ServiceManager.ddService()方法里。[Binder机制03-Framework-Native](https://journeyos.github.io/archives/937d16d8.html)有分析ServiceManager.ddService()。
+  IServiceManager其实就是[IServiceManager.aidl](http://aospxref.com/android-11.0.0_r21/xref/frameworks/native/libs/binder/aidl/android/os/IServiceManager.aidl#30)，最终调到ServiceManager.ddService()方法里。[Binder机制03-Framework-Native](https://i-rtfsc.github.io/archives/937d16d8.html)有分析ServiceManager.ddService()。
 ```cpp
 http://aospxref.com/android-11.0.0_r21/xref/frameworks/native/cmds/servicemanager/ServiceManager.cpp
 
@@ -514,7 +514,7 @@ public ServiceManagerProxy(IBinder remote) {
     private IServiceManager mServiceManager;
 }
 ```
-IServiceManager其实就是[IServiceManager.aidl](http://aospxref.com/android-11.0.0_r21/xref/frameworks/native/libs/binder/aidl/android/os/IServiceManager.aidl#30)，最终调到ServiceManager.checkService()方法里。[Binder机制03-Framework-Native](https://journeyos.github.io/archives/937d16d8.html)有分析ServiceManager.checkService()。
+IServiceManager其实就是[IServiceManager.aidl](http://aospxref.com/android-11.0.0_r21/xref/frameworks/native/libs/binder/aidl/android/os/IServiceManager.aidl#30)，最终调到ServiceManager.checkService()方法里。[Binder机制03-Framework-Native](https://i-rtfsc.github.io/archives/937d16d8.html)有分析ServiceManager.checkService()。
 ## ServiceManager.checkService()
 ```cpp
 ttp://aospxref.com/android-11.0.0_r21/xref/frameworks/native/cmds/servicemanager/ServiceManager.h
